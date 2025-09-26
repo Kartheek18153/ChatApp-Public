@@ -9,6 +9,7 @@
 
 <div class="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
 
+  <!-- LOGIN PAGE -->
   <div id="loginPage">
     <h2 class="text-2xl font-bold mb-4">Login</h2>
     <input id="loginUsername" type="text" placeholder="Username" class="border p-2 rounded w-full mb-2">
@@ -18,6 +19,7 @@
     <p id="loginMsg" class="text-sm text-red-500 mt-2"></p>
   </div>
 
+  <!-- REGISTER PAGE -->
   <div id="registerPage" class="hidden">
     <h2 class="text-2xl font-bold mb-4">Register</h2>
     <input id="registerUsername" type="text" placeholder="Username" class="border p-2 rounded w-full mb-2">
@@ -28,15 +30,21 @@
     <p id="registerMsg" class="text-sm text-red-500 mt-2"></p>
   </div>
 
+  <!-- MESSAGING PAGE -->
   <div id="messagingPage" class="hidden flex flex-col h-[500px]">
-    <div class="flex justify-between items-center mb-2">
-      <h2 class="text-xl font-bold">Welcome, <span id="userDisplay"></span></h2>
-      <button id="deleteAllBtn" class="bg-red-500 text-white px-2 py-1 rounded hidden" onclick="deleteAllMessages()">Delete All Messages</button>
-    </div>
+    <h2 class="text-xl font-bold mb-2">Welcome, <span id="userDisplay"></span></h2>
+
     <div id="messages" class="border p-2 flex-1 overflow-y-auto bg-gray-50 rounded-lg mb-4 flex flex-col"></div>
-    <div class="flex">
+
+    <div class="flex mb-2">
       <input id="messageInput" type="text" placeholder="Type your message..." class="border p-2 rounded-l-lg w-full">
       <button onclick="sendMessage()" class="bg-green-500 text-white px-4 py-2 rounded-r-lg">Send</button>
+    </div>
+
+    <!-- Admin Controls -->
+    <div id="adminControls" class="hidden flex flex-col">
+      <button onclick="deleteAllMessages()" class="bg-red-500 text-white px-4 py-2 rounded mb-2">Delete All Messages</button>
+      <p id="adminMsg" class="text-sm text-green-500"></p>
     </div>
   </div>
 
@@ -45,7 +53,7 @@
 <script>
 let ws;
 let myUsername = "";
-let myRole = "";
+let isAdmin = false; // flag to show admin controls
 
 function showLogin() {
   document.getElementById("loginPage").classList.remove("hidden");
@@ -61,51 +69,58 @@ function showMessaging() {
   document.getElementById("loginPage").classList.add("hidden");
   document.getElementById("registerPage").classList.add("hidden");
   document.getElementById("messagingPage").classList.remove("hidden");
-
-  // Show delete button if admin
-  document.getElementById("deleteAllBtn").classList.toggle("hidden", myRole !== "ADMIN");
+  if(isAdmin) document.getElementById("adminControls").classList.remove("hidden");
 }
 
+// Register user
 async function register() {
   const username = document.getElementById("registerUsername").value.trim();
   const password = document.getElementById("registerPassword").value.trim();
   const confirm = document.getElementById("registerConfirm").value.trim();
-  if(password !== confirm){ document.getElementById("registerMsg").innerText="Passwords do not match!"; return; }
+  if(password !== confirm){ 
+    document.getElementById("registerMsg").innerText="Passwords do not match!"; 
+    return; 
+  }
 
-  const response = await fetch('/auth/register', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({username,password})
+  const response = await fetch('/auth/register', { 
+    method:'POST', 
+    headers:{'Content-Type':'application/json'}, 
+    body: JSON.stringify({username,password}) 
   });
   const data = await response.json();
   document.getElementById("registerMsg").innerText = data.message;
   if(data.success) showLogin();
 }
 
+// Login user
 async function login() {
   const username = document.getElementById("loginUsername").value.trim();
   const password = document.getElementById("loginPassword").value.trim();
 
-  const response = await fetch('/auth/login', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({username,password})
+  const response = await fetch('/auth/login', { 
+    method:'POST', 
+    headers:{'Content-Type':'application/json'}, 
+    body: JSON.stringify({username,password}) 
   });
   const data = await response.json();
   document.getElementById("loginMsg").innerText = data.message;
 
   if(data.success){
-    myUsername = username;
-    myRole = data.role;
-    document.getElementById("userDisplay").innerText = myUsername;
+    myUsername=username;
+    isAdmin = data.isAdmin || false; // check if admin
+    document.getElementById("userDisplay").innerText=myUsername;
     showMessaging();
     startChat();
   }
 }
 
+// Start WebSocket
 function startChat(){
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${protocol}://${window.location.host}/chat`);
 
   ws.onopen = ()=>console.log("Connected to WebSocket server");
+
   ws.onmessage = event => {
     const msg = JSON.parse(event.data);
     const messagesDiv = document.getElementById("messages");
@@ -115,10 +130,10 @@ function startChat(){
     if(msg.username === myUsername){
       bubble.className = "self-end bg-green-500 text-white px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
       bubble.textContent = `[${time}] You: ${msg.content}`;
-    }else if(msg.username === "SYSTEM"){
+    } else if(msg.username === "SYSTEM"){
       bubble.className = "self-center bg-yellow-200 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words font-bold";
       bubble.textContent = `[${time}] ${msg.content}`;
-    }else{
+    } else {
       bubble.className = "self-start bg-gray-300 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
       bubble.textContent = `[${time}] ${msg.username}: ${msg.content}`;
     }
@@ -130,24 +145,30 @@ function startChat(){
   ws.onclose = ()=>console.log("Disconnected from server");
 }
 
+// Send message
 function sendMessage(){
   const input = document.getElementById("messageInput");
   const text = input.value.trim();
-  if(!text||!ws) return;
+  if(!text || !ws) return;
   ws.send(JSON.stringify({username:myUsername,content:text}));
   input.value="";
 }
 
-// ----------------- ADMIN FUNCTION -----------------
-async function deleteAllMessages() {
-  if(myRole !== "ADMIN") return;
-  const response = await fetch(`/auth/deleteAllMessages?username=${myUsername}`, { method:'DELETE' });
-  const data = await response.json();
-  alert(data.message);
+// Admin: Delete all messages
+async function deleteAllMessages(){
+  if(!confirm("Are you sure you want to delete all messages?")) return;
 
-  // Clear messages in UI immediately
+  const response = await fetch('/admin/deleteAllMessages', {
+    method:'DELETE',
+    headers:{'Content-Type':'application/json'}
+  });
+  const data = await response.text();
+  document.getElementById("adminMsg").innerText = data;
+
+  // Clear message box
   document.getElementById("messages").innerHTML = "";
 }
 </script>
+
 </body>
 </html>

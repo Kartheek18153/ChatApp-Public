@@ -8,10 +8,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import java.io.IOException;
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
@@ -19,40 +16,19 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Autowired
     private MessageRepository messageRepository;
 
-    private ObjectMapper objectMapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper();
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        // Optionally, you can send previous messages to the client when they connect
-        for (Message msg : messageRepository.findAll()) {
-            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(msg)));
-        }
-    }
+    public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        Map<String, String> msgMap = mapper.readValue(message.getPayload(), Map.class);
 
-    @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage textMessage) throws Exception {
-        // Parse incoming JSON
-        Message incomingMessage = objectMapper.readValue(textMessage.getPayload(), Message.class);
+        Message msg = new Message();
+        msg.setUsername(msgMap.get("username"));
+        msg.setContent(msgMap.get("content"));
+        msg.setTimestamp(LocalDateTime.now());
 
-        // Set the timestamp correctly
-        incomingMessage.setTimestamp(LocalDateTime.ofInstant(
-                Instant.ofEpochMilli(System.currentTimeMillis()), ZoneId.systemDefault()
-        ));
+        messageRepository.save(msg);
 
-        // Save to database
-        messageRepository.save(incomingMessage);
-
-        // Broadcast message to all sessions (simplified example)
-        for (WebSocketSession s : session.getOpenSessions()) {
-            if (s.isOpen()) {
-                s.sendMessage(new TextMessage(objectMapper.writeValueAsString(incomingMessage)));
-            }
-        }
-    }
-
-    @Override
-    public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-        System.out.println("Transport error: " + exception.getMessage());
-        session.close(CloseStatus.SERVER_ERROR);
+        session.sendMessage(new TextMessage(mapper.writeValueAsString(msg)));
     }
 }
