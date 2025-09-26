@@ -102,10 +102,10 @@ function startChat(){
     if(msg.username === myUsername){
       bubble.className = "self-end bg-green-500 text-white px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
       bubble.textContent = `[${time}] You: ${msg.content}`;
-    } else if(msg.username === "SYSTEM"){
+    } else if(msg.username === "SYSTEM") {
       bubble.className = "self-center bg-yellow-200 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words font-bold";
       bubble.textContent = `[${time}] ${msg.content}`;
-    } else{
+    } else {
       bubble.className = "self-start bg-gray-300 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
       bubble.textContent = `[${time}] ${msg.username}: ${msg.content}`;
     }
@@ -120,8 +120,8 @@ function startChat(){
 function sendMessage(){
   const input = document.getElementById("messageInput");
   const text = input.value.trim();
-  if(!text||!ws) return;
-  ws.send(JSON.stringify({username:myUsername,content:text}));
+  if(!text || !ws) return;
+  ws.send(JSON.stringify({username: myUsername, content: text}));
   input.value="";
 }
 </script>

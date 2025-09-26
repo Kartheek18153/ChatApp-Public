@@ -2,9 +2,8 @@ package com.example.chat.seed;
 
 import com.example.chat.model.BadWord;
 import com.example.chat.repository.BadWordRepository;
-import org.springframework.stereotype.Component;
-
 import jakarta.annotation.PostConstruct;
+import org.springframework.stereotype.Component;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 
@@ -17,18 +16,18 @@ public class BadWordSeeder {
     }
 
     @PostConstruct
-    public void seed() throws Exception {
-        if(badWordRepository.count() > 0) return;
-
-        try(BufferedReader br = new BufferedReader(new InputStreamReader(
+    public void seed() {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
                 getClass().getResourceAsStream("/badwords.txt")))) {
             String line;
-            while((line = br.readLine()) != null) {
-                String word = line.trim().toLowerCase();
-                if(!word.isEmpty() && !badWordRepository.existsByWord(word)) {
-                    badWordRepository.save(new BadWord(word));
+            while ((line = reader.readLine()) != null) {
+                line = line.trim().toLowerCase();
+                if(!line.isEmpty() && !badWordRepository.existsByWord(line)){
+                    badWordRepository.save(new BadWord(line));
                 }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
