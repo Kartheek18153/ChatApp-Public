@@ -9,6 +9,7 @@
 
 <div class="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
 
+  <!-- Login Page -->
   <div id="loginPage">
     <h2 class="text-2xl font-bold mb-4">Login</h2>
     <input id="loginUsername" type="text" placeholder="Username" class="border p-2 rounded w-full mb-2">
@@ -18,6 +19,7 @@
     <p id="loginMsg" class="text-sm text-red-500 mt-2"></p>
   </div>
 
+  <!-- Register Page -->
   <div id="registerPage" class="hidden">
     <h2 class="text-2xl font-bold mb-4">Register</h2>
     <input id="registerUsername" type="text" placeholder="Username" class="border p-2 rounded w-full mb-2">
@@ -28,9 +30,21 @@
     <p id="registerMsg" class="text-sm text-red-500 mt-2"></p>
   </div>
 
+  <!-- Messaging Page -->
   <div id="messagingPage" class="hidden flex flex-col h-[500px]">
+
     <h2 class="text-xl font-bold mb-2">Welcome, <span id="userDisplay"></span></h2>
+
+    <!-- Admin alert panel -->
+    <div id="adminPanel" class="hidden border p-2 mb-2 h-32 overflow-y-auto bg-yellow-50 rounded-lg">
+      <h3 class="font-bold text-yellow-800 mb-1">⚠️ Restricted Messages</h3>
+      <div id="alerts"></div>
+    </div>
+
+    <!-- Chat messages -->
     <div id="messages" class="border p-2 flex-1 overflow-y-auto bg-gray-50 rounded-lg mb-4 flex flex-col"></div>
+
+    <!-- Input -->
     <div class="flex">
       <input id="messageInput" type="text" placeholder="Type your message..." class="border p-2 rounded-l-lg w-full">
       <button onclick="sendMessage()" class="bg-green-500 text-white px-4 py-2 rounded-r-lg">Send</button>
@@ -43,6 +57,7 @@
 let ws;
 let myUsername = "";
 
+// Page navigation
 function showLogin() {
   document.getElementById("loginPage").classList.remove("hidden");
   document.getElementById("registerPage").classList.add("hidden");
@@ -59,66 +74,118 @@ function showMessaging() {
   document.getElementById("messagingPage").classList.remove("hidden");
 }
 
+// Registration
 async function register() {
   const username = document.getElementById("registerUsername").value.trim();
   const password = document.getElementById("registerPassword").value.trim();
   const confirm = document.getElementById("registerConfirm").value.trim();
   if(password !== confirm){ document.getElementById("registerMsg").innerText="Passwords do not match!"; return; }
 
-  const response = await fetch('/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username,password}) });
+  const response = await fetch('/auth/register', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username,password})
+  });
   const data = await response.json();
   document.getElementById("registerMsg").innerText = data.message;
   if(data.success) showLogin();
 }
 
+// Login
 async function login() {
   const username = document.getElementById("loginUsername").value.trim();
   const password = document.getElementById("loginPassword").value.trim();
 
-  const response = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username,password}) });
+  const response = await fetch('/auth/login', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username,password})
+  });
   const data = await response.json();
   document.getElementById("loginMsg").innerText = data.message;
 
   if(data.success){
     myUsername=username;
     document.getElementById("userDisplay").innerText=myUsername;
+
+    // Show admin panel if user is "admin"
+    if(myUsername.toLowerCase() === "admin"){
+      document.getElementById("adminPanel").classList.remove("hidden");
+    }
+
     showMessaging();
     startChat();
   }
 }
 
+// WebSocket
 function startChat(){
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${protocol}://${window.location.host}/chat`);
 
   ws.onopen = ()=>console.log("Connected to WebSocket server");
+
   ws.onmessage = event => {
     const msg = JSON.parse(event.data);
-    const messagesDiv = document.getElementById("messages");
-    const bubble = document.createElement("div");
-    const time = new Date(msg.timestamp).toLocaleTimeString();
 
-    if(msg.username === myUsername){
-      bubble.className = "self-end bg-green-500 text-white px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
-      bubble.textContent = `[${time}] You: ${msg.content}`;
-    }else{
-      bubble.className = "self-start bg-gray-300 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
-      bubble.textContent = `[${time}] ${msg.username}: ${msg.content}`;
+    // Admin alert
+    if(msg.alert && myUsername.toLowerCase() === "admin"){
+      const alertsDiv = document.getElementById("alerts");
+      const alertDiv = document.createElement("div");
+      alertDiv.className = "bg-red-100 p-2 mb-1 rounded flex justify-between items-center";
+
+      alertDiv.innerHTML = `
+        <span><strong>${msg.user}</strong>: ${msg.content}</span>
+        <button onclick="approveMessage(this)" class="bg-green-500 text-white px-2 py-1 rounded ml-2">Approve</button>
+        <button onclick="deleteMessage(this)" class="bg-red-500 text-white px-2 py-1 rounded ml-1">Delete</button>
+      `;
+      alertsDiv.appendChild(alertDiv);
+    } else {
+      displayMessage(msg);
     }
-
-    messagesDiv.appendChild(bubble);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
   };
 
   ws.onclose = ()=>console.log("Disconnected from server");
 }
 
+// Send message
 function sendMessage(){
   const input = document.getElementById("messageInput");
   const text = input.value.trim();
   if(!text||!ws) return;
   ws.send(JSON.stringify({username:myUsername,content:text}));
   input.value="";
+}
+
+// Display message in chat
+function displayMessage(msg){
+  const messagesDiv = document.getElementById("messages");
+  const bubble = document.createElement("div");
+  const time = new Date(msg.timestamp).toLocaleTimeString();
+
+  if(msg.username === myUsername){
+    bubble.className = "self-end bg-green-500 text-white px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
+    bubble.textContent = `[${time}] You: ${msg.content}`;
+  }else{
+    bubble.className = "self-start bg-gray-300 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
+    bubble.textContent = `[${time}] ${msg.username}: ${msg.content}`;
+  }
+
+  messagesDiv.appendChild(bubble);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+// Admin actions
+function approveMessage(btn){
+  const parent = btn.parentElement;
+  const content = parent.querySelector("span").innerText;
+  ws.send(JSON.stringify({username:"admin", content:content})); // Re-broadcast approved message
+  parent.remove();
+}
+
+function deleteMessage(btn){
+  const parent = btn.parentElement;
+  parent.remove(); // Simply remove from admin panel
 }
 </script>
 </body>
