@@ -9,7 +9,7 @@
 
 <div class="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
 
-  <!-- LOGIN PAGE -->
+  <!-- Login Page -->
   <div id="loginPage">
     <h2 class="text-2xl font-bold mb-4">Login</h2>
     <input id="loginUsername" type="text" placeholder="Username" class="border p-2 rounded w-full mb-2">
@@ -19,7 +19,7 @@
     <p id="loginMsg" class="text-sm text-red-500 mt-2"></p>
   </div>
 
-  <!-- REGISTER PAGE -->
+  <!-- Register Page -->
   <div id="registerPage" class="hidden">
     <h2 class="text-2xl font-bold mb-4">Register</h2>
     <input id="registerUsername" type="text" placeholder="Username" class="border p-2 rounded w-full mb-2">
@@ -30,15 +30,9 @@
     <p id="registerMsg" class="text-sm text-red-500 mt-2"></p>
   </div>
 
-  <!-- MESSAGING PAGE -->
+  <!-- Messaging Page -->
   <div id="messagingPage" class="hidden flex flex-col h-[500px]">
     <h2 class="text-xl font-bold mb-2">Welcome, <span id="userDisplay"></span></h2>
-    
-    <!-- Admin controls -->
-    <div id="adminControls" class="hidden mb-2">
-      <button onclick="deleteAllMessages()" class="bg-red-500 text-white px-4 py-2 rounded">Delete All Messages</button>
-    </div>
-
     <div id="messages" class="border p-2 flex-1 overflow-y-auto bg-gray-50 rounded-lg mb-4 flex flex-col"></div>
     <div class="flex">
       <input id="messageInput" type="text" placeholder="Type your message..." class="border p-2 rounded-l-lg w-full">
@@ -51,9 +45,8 @@
 <script>
 let ws;
 let myUsername = "";
-let isAdmin = false;
 
-// -------- PAGE SWITCHING --------
+// Show pages
 function showLogin() {
   document.getElementById("loginPage").classList.remove("hidden");
   document.getElementById("registerPage").classList.add("hidden");
@@ -70,51 +63,71 @@ function showMessaging() {
   document.getElementById("messagingPage").classList.remove("hidden");
 }
 
-// -------- REGISTER --------
+// Registration
 async function register() {
   const username = document.getElementById("registerUsername").value.trim();
   const password = document.getElementById("registerPassword").value.trim();
   const confirm = document.getElementById("registerConfirm").value.trim();
-  if(password !== confirm){ document.getElementById("registerMsg").innerText="Passwords do not match!"; return; }
 
-  const response = await fetch('/auth/register', {
-    method:'POST', 
-    headers:{'Content-Type':'application/json'}, 
-    body: JSON.stringify({username,password})
-  });
-  const data = await response.json();
-  document.getElementById("registerMsg").innerText = data.message;
-  if(data.success) showLogin();
+  if (!username || !password || !confirm) {
+    document.getElementById("registerMsg").innerText = "Please fill all fields!";
+    return;
+  }
+
+  if(password !== confirm){ 
+    document.getElementById("registerMsg").innerText="Passwords do not match!";
+    return;
+  }
+
+  try {
+    const response = await fetch('/auth/register', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({username,password})
+    });
+    const data = await response.json();
+    document.getElementById("registerMsg").innerText = data.message || (data.success ? "Registration successful!" : "Registration failed!");
+    if(data.success) showLogin();
+  } catch(err){
+    console.error(err);
+    document.getElementById("registerMsg").innerText = "Server error. Try again later.";
+  }
 }
 
-// -------- LOGIN --------
+// Login
 async function login() {
   const username = document.getElementById("loginUsername").value.trim();
   const password = document.getElementById("loginPassword").value.trim();
 
-  const response = await fetch('/auth/login', {
-    method:'POST', 
-    headers:{'Content-Type':'application/json'}, 
-    body: JSON.stringify({username,password})
-  });
-  const data = await response.json();
-  document.getElementById("loginMsg").innerText = data.message;
+  if (!username || !password) {
+    document.getElementById("loginMsg").innerText = "Please enter both username and password!";
+    return;
+  }
 
-  if(data.success){
-    myUsername = data.username;
-    isAdmin = data.isAdmin;
-    document.getElementById("userDisplay").innerText = myUsername;
+  try {
+    const response = await fetch('/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username, password})
+    });
 
-    if(isAdmin) {
-      document.getElementById("adminControls").classList.remove("hidden");
+    const data = await response.json();
+    document.getElementById("loginMsg").innerText =
+      data.message || (data.success ? "Login successful!" : "Login failed!");
+
+    if(data.success){
+      myUsername = username;
+      document.getElementById("userDisplay").innerText = myUsername;
+      showMessaging();
+      startChat();
     }
-
-    showMessaging();
-    startChat();
+  } catch (err) {
+    console.error(err);
+    document.getElementById("loginMsg").innerText = "Server error. Try again later.";
   }
 }
 
-// -------- WEBSOCKET CHAT --------
+// WebSocket chat
 function startChat(){
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${protocol}://${window.location.host}/chat`);
@@ -129,10 +142,10 @@ function startChat(){
     if(msg.username === myUsername){
       bubble.className = "self-end bg-green-500 text-white px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
       bubble.textContent = `[${time}] You: ${msg.content}`;
-    }else if(msg.username === "SYSTEM"){
+    } else if(msg.username === "SYSTEM"){
       bubble.className = "self-center bg-yellow-200 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words font-bold";
       bubble.textContent = `[${time}] ${msg.content}`;
-    }else{
+    } else {
       bubble.className = "self-start bg-gray-300 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
       bubble.textContent = `[${time}] ${msg.username}: ${msg.content}`;
     }
@@ -147,21 +160,10 @@ function startChat(){
 function sendMessage(){
   const input = document.getElementById("messageInput");
   const text = input.value.trim();
-  if(!text||!ws) return;
-  ws.send(JSON.stringify({username:myUsername,content:text}));
+  if(!text || !ws) return;
+  ws.send(JSON.stringify({username:myUsername, content:text}));
   input.value="";
 }
-
-// -------- ADMIN ACTIONS --------
-async function deleteAllMessages() {
-  if(!isAdmin) return alert("Access denied!");
-  const response = await fetch(`/admin/deleteAllMessages?username=${myUsername}`, { method: "DELETE" });
-  const result = await response.text();
-  alert(result);
-  // Clear messages from UI
-  document.getElementById("messages").innerHTML = "";
-}
 </script>
-
 </body>
 </html>
