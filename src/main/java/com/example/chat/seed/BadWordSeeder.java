@@ -10,7 +10,6 @@ import java.io.InputStreamReader;
 
 @Component
 public class BadWordSeeder {
-
     @Autowired
     private BadWordRepository badWordRepository;
 

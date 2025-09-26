@@ -5,11 +5,8 @@ import com.example.chat.repository.MessageRepository;
 import com.example.chat.repository.BadWordRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.CloseStatus;
-import org.springframework.web.socket.TextMessage;
-import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
-
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -27,9 +24,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-        List<Message> messages = messageRepository.findAll();
-        for (Message m : messages) {
-            session.sendMessage(new TextMessage("{\"username\":\"" + m.getUsername() + "\",\"content\":\"" + m.getContent() + "\",\"timestamp\":\"" + m.getTimestamp() + "\"}"));
+        for (Message m : messageRepository.findAll()) {
+            session.sendMessage(new TextMessage("{\"username\":\"" + m.getUsername() + "\",\"content\":\"" + m.getContent() + "\",\"timestamp\":" + m.getTimestamp() + "}"));
         }
     }
 
@@ -43,7 +39,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
                 .anyMatch(b -> content.toLowerCase().contains(b.getWord().toLowerCase()));
 
         if (hasBadWord) {
-            session.sendMessage(new TextMessage("{\"username\":\"SYSTEM\",\"content\":\"Message contains a banned word!\",\"timestamp\":\"" + System.currentTimeMillis() + "\"}"));
+            session.sendMessage(new TextMessage("{\"username\":\"SYSTEM\",\"content\":\"Message contains a banned word!\",\"timestamp\":" + System.currentTimeMillis() + "}"));
             return;
         }
 
@@ -54,7 +50,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         messageRepository.save(msg);
 
         for (WebSocketSession s : sessions) {
-            s.sendMessage(new TextMessage("{\"username\":\"" + username + "\",\"content\":\"" + content + "\",\"timestamp\":\"" + System.currentTimeMillis() + "\"}"));
+            s.sendMessage(new TextMessage("{\"username\":\"" + username + "\",\"content\":\"" + content + "\",\"timestamp\":" + System.currentTimeMillis() + "}"));
         }
     }
 
