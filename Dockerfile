@@ -1,14 +1,11 @@
 FROM eclipse-temurin:17-jdk-alpine
-WORKDIR /app
 
-# Install Maven (Alpine needs openjdk + maven)
-RUN apk add --no-cache maven bash git
+WORKDIR /app
 
 COPY pom.xml .
 COPY src ./src
 
-# Build the app
-RUN mvn clean package -DskipTests
+RUN ./mvnw clean package -DskipTests || mvn clean package -DskipTests
 
 EXPOSE 8080
 

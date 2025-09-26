@@ -1,5 +1,6 @@
-package com.example.chat.handler;
+package com.example.chat.config;
 
+import com.example.chat.handler.ChatWebSocketHandler;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.socket.config.annotation.*;
 
@@ -16,6 +17,6 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(chatWebSocketHandler, "/chat")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOrigins("*");
     }
 }

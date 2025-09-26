@@ -1,58 +1,44 @@
 package com.example.chat.controller;
 
-import com.example.chat.model.User;
-import com.example.chat.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
-    private final UserRepository userRepository;
-
-    public AuthController(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    private final ConcurrentHashMap<String, String> users = new ConcurrentHashMap<>();
 
     @PostMapping("/register")
-    public ResponseEntity<Map<String,Object>> register(@RequestBody Map<String,String> data) {
-        String username = data.get("username");
-        String password = data.get("password");
-
-        Map<String,Object> resp = new HashMap<>();
-        if(userRepository.findByUsername(username) != null){
-            resp.put("success", false);
-            resp.put("message", "Username already exists");
-            return ResponseEntity.ok(resp);
+    public ResponseEntity<?> register(@RequestBody UserDTO user) {
+        if(users.containsKey(user.username)){
+            return ResponseEntity.ok(new MessageResponse(false, "Username already exists!"));
         }
-
-        User user = new User(username,password);
-        userRepository.save(user);
-
-        resp.put("success", true);
-        resp.put("message", "Registered successfully!");
-        return ResponseEntity.ok(resp);
+        users.put(user.username, user.password);
+        return ResponseEntity.ok(new MessageResponse(true, "Registration successful!"));
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String,Object>> login(@RequestBody Map<String,String> data){
-        String username = data.get("username");
-        String password = data.get("password");
-
-        Map<String,Object> resp = new HashMap<>();
-        User user = userRepository.findByUsername(username);
-        if(user == null || !user.getPassword().equals(password)){
-            resp.put("success", false);
-            resp.put("message", "Invalid credentials");
-            return ResponseEntity.ok(resp);
+    public ResponseEntity<?> login(@RequestBody UserDTO user) {
+        if(users.containsKey(user.username) && users.get(user.username).equals(user.password)){
+            return ResponseEntity.ok(new MessageResponse(true, "Login successful!"));
         }
+        return ResponseEntity.ok(new MessageResponse(false, "Invalid username or password!"));
+    }
 
-        resp.put("success", true);
-        resp.put("message", "Logged in successfully!");
-        return ResponseEntity.ok(resp);
+    static class UserDTO {
+        public String username;
+        public String password;
+    }
+
+    static class MessageResponse {
+        public boolean success;
+        public String message;
+        public MessageResponse(boolean success, String message){
+            this.success = success;
+            this.message = message;
+        }
     }
 }
