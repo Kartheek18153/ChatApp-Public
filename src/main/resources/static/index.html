@@ -9,7 +9,6 @@
 
 <div class="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
 
-  <!-- Login Page -->
   <div id="loginPage">
     <h2 class="text-2xl font-bold mb-4">Login</h2>
     <input id="loginUsername" type="text" placeholder="Username" class="border p-2 rounded w-full mb-2">
@@ -19,7 +18,6 @@
     <p id="loginMsg" class="text-sm text-red-500 mt-2"></p>
   </div>
 
-  <!-- Register Page -->
   <div id="registerPage" class="hidden">
     <h2 class="text-2xl font-bold mb-4">Register</h2>
     <input id="registerUsername" type="text" placeholder="Username" class="border p-2 rounded w-full mb-2">
@@ -30,19 +28,15 @@
     <p id="registerMsg" class="text-sm text-red-500 mt-2"></p>
   </div>
 
-  <!-- Messaging Page -->
   <div id="messagingPage" class="hidden flex flex-col h-[500px]">
-    <h2 class="text-xl font-bold mb-2">Welcome, <span id="userDisplay"></span></h2>
+    <div class="flex justify-between items-center mb-2">
+      <h2 class="text-xl font-bold">Welcome, <span id="userDisplay"></span></h2>
+      <button id="deleteAllBtn" class="bg-red-500 text-white px-2 py-1 rounded hidden" onclick="deleteAllMessages()">Delete All Messages</button>
+    </div>
     <div id="messages" class="border p-2 flex-1 overflow-y-auto bg-gray-50 rounded-lg mb-4 flex flex-col"></div>
-
-    <div class="flex mb-2">
+    <div class="flex">
       <input id="messageInput" type="text" placeholder="Type your message..." class="border p-2 rounded-l-lg w-full">
       <button onclick="sendMessage()" class="bg-green-500 text-white px-4 py-2 rounded-r-lg">Send</button>
-    </div>
-
-    <!-- Admin Controls -->
-    <div id="adminControls" class="hidden flex justify-end">
-      <button onclick="deleteAllMessages()" class="bg-red-500 text-white px-4 py-2 rounded">Delete All Messages</button>
     </div>
   </div>
 
@@ -53,7 +47,6 @@ let ws;
 let myUsername = "";
 let myRole = "";
 
-// Show/Hide Pages
 function showLogin() {
   document.getElementById("loginPage").classList.remove("hidden");
   document.getElementById("registerPage").classList.add("hidden");
@@ -69,13 +62,10 @@ function showMessaging() {
   document.getElementById("registerPage").classList.add("hidden");
   document.getElementById("messagingPage").classList.remove("hidden");
 
-  // Show admin controls if role is ADMIN
-  if(myRole === "ADMIN") {
-    document.getElementById("adminControls").classList.remove("hidden");
-  }
+  // Show delete button if admin
+  document.getElementById("deleteAllBtn").classList.toggle("hidden", myRole !== "ADMIN");
 }
 
-// Registration
 async function register() {
   const username = document.getElementById("registerUsername").value.trim();
   const password = document.getElementById("registerPassword").value.trim();
@@ -83,8 +73,7 @@ async function register() {
   if(password !== confirm){ document.getElementById("registerMsg").innerText="Passwords do not match!"; return; }
 
   const response = await fetch('/auth/register', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
+    method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({username,password})
   });
   const data = await response.json();
@@ -92,29 +81,26 @@ async function register() {
   if(data.success) showLogin();
 }
 
-// Login
 async function login() {
   const username = document.getElementById("loginUsername").value.trim();
   const password = document.getElementById("loginPassword").value.trim();
 
   const response = await fetch('/auth/login', {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
+    method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({username,password})
   });
   const data = await response.json();
   document.getElementById("loginMsg").innerText = data.message;
 
   if(data.success){
-    myUsername=username;
+    myUsername = username;
     myRole = data.role;
-    document.getElementById("userDisplay").innerText=myUsername;
+    document.getElementById("userDisplay").innerText = myUsername;
     showMessaging();
     startChat();
   }
 }
 
-// Start WebSocket
 function startChat(){
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${protocol}://${window.location.host}/chat`);
@@ -129,10 +115,10 @@ function startChat(){
     if(msg.username === myUsername){
       bubble.className = "self-end bg-green-500 text-white px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
       bubble.textContent = `[${time}] You: ${msg.content}`;
-    } else if(msg.username === "SYSTEM"){
+    }else if(msg.username === "SYSTEM"){
       bubble.className = "self-center bg-yellow-200 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words font-bold";
       bubble.textContent = `[${time}] ${msg.content}`;
-    } else{
+    }else{
       bubble.className = "self-start bg-gray-300 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
       bubble.textContent = `[${time}] ${msg.username}: ${msg.content}`;
     }
@@ -144,7 +130,6 @@ function startChat(){
   ws.onclose = ()=>console.log("Disconnected from server");
 }
 
-// Send Message
 function sendMessage(){
   const input = document.getElementById("messageInput");
   const text = input.value.trim();
@@ -153,14 +138,15 @@ function sendMessage(){
   input.value="";
 }
 
-// Admin: Delete All Messages
+// ----------------- ADMIN FUNCTION -----------------
 async function deleteAllMessages() {
-  if(confirm("Are you sure you want to delete all messages?")) {
-    const response = await fetch(`/auth/admin/deleteAllMessages?username=${myUsername}`, { method:'DELETE' });
-    const data = await response.json();
-    alert(data.message);
-    document.getElementById("messages").innerHTML = "";
-  }
+  if(myRole !== "ADMIN") return;
+  const response = await fetch(`/auth/deleteAllMessages?username=${myUsername}`, { method:'DELETE' });
+  const data = await response.json();
+  alert(data.message);
+
+  // Clear messages in UI immediately
+  document.getElementById("messages").innerHTML = "";
 }
 </script>
 </body>

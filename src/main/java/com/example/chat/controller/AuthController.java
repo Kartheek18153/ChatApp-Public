@@ -1,14 +1,13 @@
 package com.example.chat.controller;
 
-import com.example.chat.model.Message;
 import com.example.chat.model.User;
-import com.example.chat.repository.MessageRepository;
 import com.example.chat.repository.UserRepository;
+import com.example.chat.repository.MessageRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -21,58 +20,67 @@ public class AuthController {
     @Autowired
     private MessageRepository messageRepository;
 
-    // Registration
+    private BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+
+    // ----------------- REGISTER -----------------
     @PostMapping("/register")
-    public Response register(@RequestBody User user) {
-        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
-            return new Response(false, "Username already exists!");
+    public ResponseEntity<?> register(@RequestBody User user) {
+        if(userRepository.findByUsername(user.getUsername()).isPresent()) {
+            return ResponseEntity.ok().body(new Response(false, "Username already exists!"));
         }
+        user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRole("USER"); // default role
         userRepository.save(user);
-        return new Response(true, "Registration successful!");
+        return ResponseEntity.ok().body(new Response(true, "Registration successful!"));
     }
 
-    // Login
+    // ----------------- LOGIN -----------------
     @PostMapping("/login")
-    public Response login(@RequestBody User user) {
-        Optional<User> existing = userRepository.findByUsername(user.getUsername());
-        if (existing.isPresent() && existing.get().getPassword().equals(user.getPassword())) {
-            return new Response(true, "Login successful!", existing.get().getRole());
+    public ResponseEntity<?> login(@RequestBody User user) {
+        Optional<User> optionalUser = userRepository.findByUsername(user.getUsername());
+        if(optionalUser.isEmpty()) {
+            return ResponseEntity.ok().body(new Response(false, "User not found!"));
         }
-        return new Response(false, "Invalid username or password!");
-    }
 
-    // Get all messages
-    @GetMapping("/messages")
-    public List<Message> getMessages() {
-        return messageRepository.findAll();
-    }
-
-    // Admin: delete all messages
-    @DeleteMapping("/admin/deleteAllMessages")
-    public Response deleteAllMessages(@RequestParam String username) {
-        Optional<User> user = userRepository.findByUsername(username);
-        if (user.isPresent() && "ADMIN".equals(user.get().getRole())) {
-            messageRepository.deleteAll();
-            return new Response(true, "All messages deleted by admin!");
+        User existingUser = optionalUser.get();
+        if(!passwordEncoder.matches(user.getPassword(), existingUser.getPassword())) {
+            return ResponseEntity.ok().body(new Response(false, "Incorrect password!"));
         }
-        return new Response(false, "Unauthorized: Only admin can delete messages.");
+
+        return ResponseEntity.ok().body(new LoginResponse(true, "Login successful!", existingUser.getRole()));
     }
 
-    // Helper response class
+    // ----------------- DELETE ALL MESSAGES (ADMIN ONLY) -----------------
+    @DeleteMapping("/deleteAllMessages")
+    public ResponseEntity<?> deleteAllMessages(@RequestParam String username) {
+        Optional<User> optionalUser = userRepository.findByUsername(username);
+        if(optionalUser.isEmpty()) {
+            return ResponseEntity.ok().body(new Response(false, "User not found!"));
+        }
+
+        User user = optionalUser.get();
+        if(!user.getRole().equals("ADMIN")) {
+            return ResponseEntity.ok().body(new Response(false, "Only admin can delete messages!"));
+        }
+
+        messageRepository.deleteAll();
+        return ResponseEntity.ok().body(new Response(true, "All messages deleted!"));
+    }
+
+    // ----------------- RESPONSE CLASSES -----------------
     static class Response {
         public boolean success;
         public String message;
-        public String role;
-
         public Response(boolean success, String message) {
             this.success = success;
             this.message = message;
         }
+    }
 
-        public Response(boolean success, String message, String role) {
-            this.success = success;
-            this.message = message;
+    static class LoginResponse extends Response {
+        public String role;
+        public LoginResponse(boolean success, String message, String role) {
+            super(success, message);
             this.role = role;
         }
     }
