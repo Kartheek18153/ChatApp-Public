@@ -63,9 +63,16 @@ async function register() {
   const username = document.getElementById("registerUsername").value.trim();
   const password = document.getElementById("registerPassword").value.trim();
   const confirm = document.getElementById("registerConfirm").value.trim();
-  if(password !== confirm){ document.getElementById("registerMsg").innerText="Passwords do not match!"; return; }
+  if(password !== confirm){ 
+    document.getElementById("registerMsg").innerText="Passwords do not match!"; 
+    return; 
+  }
 
-  const response = await fetch('/auth/register', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username,password}) });
+  const response = await fetch('/auth/register', { 
+    method:'POST', 
+    headers:{'Content-Type':'application/json'}, 
+    body: JSON.stringify({username,password}) 
+  });
   const data = await response.json();
   document.getElementById("registerMsg").innerText = data.message;
   if(data.success) showLogin();
@@ -75,7 +82,11 @@ async function login() {
   const username = document.getElementById("loginUsername").value.trim();
   const password = document.getElementById("loginPassword").value.trim();
 
-  const response = await fetch('/auth/login', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({username,password}) });
+  const response = await fetch('/auth/login', { 
+    method:'POST', 
+    headers:{'Content-Type':'application/json'}, 
+    body: JSON.stringify({username,password}) 
+  });
   const data = await response.json();
   document.getElementById("loginMsg").innerText = data.message;
 
@@ -102,7 +113,7 @@ function startChat(){
     if(msg.username === myUsername){
       bubble.className = "self-end bg-green-500 text-white px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
       bubble.textContent = `[${time}] You: ${msg.content}`;
-    } else if(msg.username === "SYSTEM") {
+    } else if(msg.username === "SYSTEM"){
       bubble.className = "self-center bg-yellow-200 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words font-bold";
       bubble.textContent = `[${time}] ${msg.content}`;
     } else {
@@ -121,7 +132,7 @@ function sendMessage(){
   const input = document.getElementById("messageInput");
   const text = input.value.trim();
   if(!text || !ws) return;
-  ws.send(JSON.stringify({username: myUsername, content: text}));
+  ws.send(JSON.stringify({username:myUsername, content:text}));
   input.value="";
 }
 </script>

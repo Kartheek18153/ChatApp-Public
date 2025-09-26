@@ -11,13 +11,14 @@ public class Message {
 
     private String username;
     private String content;
-    private LocalDateTime timestamp;
+    private LocalDateTime timestamp = LocalDateTime.now();
 
     public Message() {}
-    public Message(String username, String content, LocalDateTime timestamp){
+
+    public Message(String username, String content) {
         this.username = username;
         this.content = content;
-        this.timestamp = timestamp;
+        this.timestamp = LocalDateTime.now();
     }
 
     // Getters and Setters
