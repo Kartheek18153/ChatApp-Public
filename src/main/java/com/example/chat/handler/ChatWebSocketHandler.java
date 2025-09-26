@@ -2,19 +2,19 @@ package com.example.chat.handler;
 
 import com.example.chat.model.Message;
 import com.example.chat.repository.MessageRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
+
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private final MessageRepository messageRepository;
-    private final ObjectMapper objectMapper = new ObjectMapper();
-    private final CopyOnWriteArraySet<WebSocketSession> sessions = new CopyOnWriteArraySet<>();
+    private final List<WebSocketSession> sessions = new ArrayList<>();
 
     public ChatWebSocketHandler(MessageRepository messageRepository) {
         this.messageRepository = messageRepository;
@@ -23,26 +23,38 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-        List<Message> messages = messageRepository.findTop50ByOrderByTimestampAsc();
-        for (Message msg : messages) {
-            session.sendMessage(new TextMessage(objectMapper.writeValueAsString(msg)));
-        }
+        // Send existing messages to newly connected user
+        messageRepository.findAll().forEach(msg -> {
+            try {
+                session.sendMessage(new TextMessage(
+                        String.format("{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
+                                msg.getUsername(), msg.getContent(), msg.getTimestamp())
+                ));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage textMessage) throws Exception {
-        Message msg = objectMapper.readValue(textMessage.getPayload(), Message.class);
-        msg.setTimestamp(java.time.Instant.now());
+    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+        String payload = message.getPayload();
+
+        // Simple JSON parsing
+        String username = payload.split("\"username\":\"")[1].split("\"")[0];
+        String content = payload.split("\"content\":\"")[1].split("\"")[0];
+
+        Message msg = new Message();
+        msg.setUsername(username);
+        msg.setContent(content);
+        msg.setTimestamp(Instant.now());
         messageRepository.save(msg);
 
-        String payload = objectMapper.writeValueAsString(msg);
-        for (WebSocketSession s : sessions) {
-            if (s.isOpen()) s.sendMessage(new TextMessage(payload));
-        }
-    }
+        String broadcast = String.format("{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
+                msg.getUsername(), msg.getContent(), msg.getTimestamp());
 
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
-        sessions.remove(session);
+        for (WebSocketSession s : sessions) {
+            if (s.isOpen()) s.sendMessage(new TextMessage(broadcast));
+        }
     }
 }
