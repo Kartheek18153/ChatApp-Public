@@ -2,6 +2,7 @@ package com.example.chat.controller;
 
 import com.example.chat.model.User;
 import com.example.chat.repository.UserRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -18,37 +19,40 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public Map<String, Object> register(@RequestBody Map<String, String> body){
-        Map<String,Object> resp = new HashMap<>();
-        String username = body.get("username");
-        String password = body.get("password");
+    public ResponseEntity<Map<String,Object>> register(@RequestBody Map<String,String> data) {
+        String username = data.get("username");
+        String password = data.get("password");
 
+        Map<String,Object> resp = new HashMap<>();
         if(userRepository.findByUsername(username) != null){
             resp.put("success", false);
-            resp.put("message", "Username already exists!");
-            return resp;
+            resp.put("message", "Username already exists");
+            return ResponseEntity.ok(resp);
         }
 
-        userRepository.save(new User(username,password));
+        User user = new User(username,password);
+        userRepository.save(user);
+
         resp.put("success", true);
         resp.put("message", "Registered successfully!");
-        return resp;
+        return ResponseEntity.ok(resp);
     }
 
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody Map<String, String> body){
-        Map<String,Object> resp = new HashMap<>();
-        String username = body.get("username");
-        String password = body.get("password");
+    public ResponseEntity<Map<String,Object>> login(@RequestBody Map<String,String> data){
+        String username = data.get("username");
+        String password = data.get("password");
 
+        Map<String,Object> resp = new HashMap<>();
         User user = userRepository.findByUsername(username);
-        if(user != null && user.getPassword().equals(password)){
-            resp.put("success", true);
-            resp.put("message", "Login successful!");
-        } else {
+        if(user == null || !user.getPassword().equals(password)){
             resp.put("success", false);
-            resp.put("message", "Invalid username or password!");
+            resp.put("message", "Invalid credentials");
+            return ResponseEntity.ok(resp);
         }
-        return resp;
+
+        resp.put("success", true);
+        resp.put("message", "Logged in successfully!");
+        return ResponseEntity.ok(resp);
     }
 }
