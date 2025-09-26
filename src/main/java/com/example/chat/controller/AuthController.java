@@ -3,10 +3,10 @@ package com.example.chat.controller;
 import com.example.chat.model.User;
 import com.example.chat.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
@@ -15,52 +15,34 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
 
+    // ------------------ REGISTER ------------------
     @PostMapping("/register")
-    public Map<String, Object> register(@RequestBody Map<String, String> body) {
-        String username = body.get("username");
-        String password = body.get("password");
-
-        Map<String, Object> res = new HashMap<>();
-
-        if (userRepository.existsByUsername(username)) {
-            res.put("success", false);
-            res.put("message", "Username already exists!");
-            return res;
+    public ResponseEntity<?> register(@RequestBody User user) {
+        if(userRepository.existsByUsername(user.getUsername())) {
+            return ResponseEntity.ok().body("{\"success\":false,\"message\":\"Username already exists\"}");
         }
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(password);
-
-        // First user becomes ADMIN automatically
-        if (userRepository.count() == 0) {
-            user.setRole("ADMIN");
+        // If registering first user, make them admin (optional)
+        if(userRepository.count() == 0) {
+            user.setAdmin(true);
         }
 
         userRepository.save(user);
-
-        res.put("success", true);
-        res.put("message", "Registered successfully!");
-        res.put("role", user.getRole());
-        return res;
+        return ResponseEntity.ok().body("{\"success\":true,\"message\":\"User registered successfully\"}");
     }
 
+    // ------------------ LOGIN ------------------
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody Map<String, String> body) {
-        String username = body.get("username");
-        String password = body.get("password");
-
-        Map<String, Object> res = new HashMap<>();
-        User user = userRepository.findByUsername(username);
-
-        if (user == null || !user.getPassword().equals(password)) {
-            res.put("success", false);
-            res.put("message", "Invalid credentials!");
-        } else {
-            res.put("success", true);
-            res.put("message", "Login successful!");
-            res.put("role", user.getRole());
+    public ResponseEntity<?> login(@RequestBody User user) {
+        Optional<User> optionalUser = userRepository.findByUsername(user.getUsername());
+        if(optionalUser.isEmpty() || !optionalUser.get().getPassword().equals(user.getPassword())) {
+            return ResponseEntity.ok().body("{\"success\":false,\"message\":\"Invalid username or password\"}");
         }
-        return res;
+
+        User loggedInUser = optionalUser.get();
+        // Return username and isAdmin flag
+        String response = String.format("{\"success\":true,\"message\":\"Login successful\",\"username\":\"%s\",\"isAdmin\":%s}",
+                loggedInUser.getUsername(), loggedInUser.isAdmin());
+        return ResponseEntity.ok().body(response);
     }
 }
