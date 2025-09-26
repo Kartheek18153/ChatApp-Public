@@ -3,71 +3,58 @@ package com.example.chat.handler;
 import com.example.chat.model.Message;
 import com.example.chat.repository.MessageRepository;
 import com.example.chat.repository.BadWordRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import org.springframework.web.socket.*;
+import org.springframework.web.socket.CloseStatus;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
+import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import java.util.*;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
-    private final MessageRepository messageRepository;
-    private final BadWordRepository badWordRepository;
-    private final List<WebSocketSession> sessions = new ArrayList<>();
-    private final ObjectMapper mapper = new ObjectMapper();
+    @Autowired
+    private MessageRepository messageRepository;
 
-    public ChatWebSocketHandler(MessageRepository messageRepository, BadWordRepository badWordRepository) {
-        this.messageRepository = messageRepository;
-        this.badWordRepository = badWordRepository;
-    }
+    @Autowired
+    private BadWordRepository badWordRepository;
+
+    private final List<WebSocketSession> sessions = new CopyOnWriteArrayList<>();
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-
-        // Send previous messages to new user
-        for (Message msg : messageRepository.findAll()) {
-            Map<String, Object> data = new HashMap<>();
-            data.put("username", msg.getUsername());
-            data.put("content", msg.getContent());
-            data.put("timestamp", msg.getTimestamp());
-            session.sendMessage(new TextMessage(mapper.writeValueAsString(data)));
+        List<Message> messages = messageRepository.findAll();
+        for (Message m : messages) {
+            session.sendMessage(new TextMessage("{\"username\":\"" + m.getUsername() + "\",\"content\":\"" + m.getContent() + "\",\"timestamp\":\"" + m.getTimestamp() + "\"}"));
         }
     }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        Map<String, String> map = mapper.readValue(message.getPayload(), Map.class);
-        String username = map.get("username");
-        String content = map.get("content");
+        String payload = message.getPayload();
+        String username = payload.split("\"username\":\"")[1].split("\"")[0];
+        String content = payload.split("\"content\":\"")[1].split("\"")[0];
 
-        // Bad word detection
-        String lowerContent = content.toLowerCase();
-        boolean bad = badWordRepository.findAll().stream().anyMatch(b -> lowerContent.contains(b.getWord()));
+        boolean hasBadWord = badWordRepository.findAll().stream()
+                .anyMatch(b -> content.toLowerCase().contains(b.getWord().toLowerCase()));
 
-        if (bad) {
-            Map<String, Object> sysMsg = new HashMap<>();
-            sysMsg.put("username", "SYSTEM");
-            sysMsg.put("content", "Bad word detected from " + username + "!");
-            sysMsg.put("timestamp", new Date());
-            broadcast(sysMsg);
+        if (hasBadWord) {
+            session.sendMessage(new TextMessage("{\"username\":\"SYSTEM\",\"content\":\"Message contains a banned word!\",\"timestamp\":\"" + System.currentTimeMillis() + "\"}"));
+            return;
         }
 
-        // Save and broadcast normal message
-        Message newMsg = new Message(username, content);
-        messageRepository.save(newMsg);
-        Map<String, Object> data = new HashMap<>();
-        data.put("username", username);
-        data.put("content", content);
-        data.put("timestamp", newMsg.getTimestamp());
-        broadcast(data);
-    }
+        Message msg = new Message();
+        msg.setUsername(username);
+        msg.setContent(content);
+        msg.setTimestamp(System.currentTimeMillis());
+        messageRepository.save(msg);
 
-    private void broadcast(Map<String, Object> data) throws Exception {
-        String json = mapper.writeValueAsString(data);
         for (WebSocketSession s : sessions) {
-            s.sendMessage(new TextMessage(json));
+            s.sendMessage(new TextMessage("{\"username\":\"" + username + "\",\"content\":\"" + content + "\",\"timestamp\":\"" + System.currentTimeMillis() + "\"}"));
         }
     }
 
