@@ -3,30 +3,19 @@ package com.example.chat.model;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "badwords", uniqueConstraints = {@UniqueConstraint(columnNames = {"word"})})
+@Table(name="badwords")
 public class BadWord {
-
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy=GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique=true)
     private String word;
 
-    // Getters and setters
-    public Long getId() {
-        return id;
-    }
+    public BadWord() {}
+    public BadWord(String word) { this.word = word; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getWord() {
-        return word;
-    }
-
-    public void setWord(String word) {
-        this.word = word;
-    }
+    public Long getId() { return id; }
+    public String getWord() { return word; }
+    public void setWord(String word) { this.word = word; }
 }

@@ -2,54 +2,53 @@ package com.example.chat.controller;
 
 import com.example.chat.model.User;
 import com.example.chat.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import java.util.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
+
+    public AuthController(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
 
     @PostMapping("/register")
-    public Map<String,Object> register(@RequestBody Map<String,String> payload) {
-        String username = payload.get("username");
-        String password = payload.get("password");
+    public Map<String, Object> register(@RequestBody Map<String, String> body){
+        Map<String,Object> resp = new HashMap<>();
+        String username = body.get("username");
+        String password = body.get("password");
 
-        Map<String,Object> response = new HashMap<>();
-        if(userRepository.findByUsername(username).isPresent()) {
-            response.put("success", false);
-            response.put("message", "Username already exists!");
-            return response;
+        if(userRepository.findByUsername(username) != null){
+            resp.put("success", false);
+            resp.put("message", "Username already exists!");
+            return resp;
         }
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(password);
-        userRepository.save(user);
-
-        response.put("success", true);
-        response.put("message", "Registration successful!");
-        return response;
+        userRepository.save(new User(username,password));
+        resp.put("success", true);
+        resp.put("message", "Registered successfully!");
+        return resp;
     }
 
     @PostMapping("/login")
-    public Map<String,Object> login(@RequestBody Map<String,String> payload) {
-        String username = payload.get("username");
-        String password = payload.get("password");
+    public Map<String, Object> login(@RequestBody Map<String, String> body){
+        Map<String,Object> resp = new HashMap<>();
+        String username = body.get("username");
+        String password = body.get("password");
 
-        Map<String,Object> response = new HashMap<>();
-        User user = userRepository.findByUsername(username).orElse(null);
-
-        if(user == null || !user.getPassword().equals(password)) {
-            response.put("success", false);
-            response.put("message", "Invalid credentials!");
+        User user = userRepository.findByUsername(username);
+        if(user != null && user.getPassword().equals(password)){
+            resp.put("success", true);
+            resp.put("message", "Login successful!");
         } else {
-            response.put("success", true);
-            response.put("message", "Login successful!");
+            resp.put("success", false);
+            resp.put("message", "Invalid username or password!");
         }
-        return response;
+        return resp;
     }
 }

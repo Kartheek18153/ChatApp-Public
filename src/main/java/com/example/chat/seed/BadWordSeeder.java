@@ -2,48 +2,33 @@ package com.example.chat.seed;
 
 import com.example.chat.model.BadWord;
 import com.example.chat.repository.BadWordRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import jakarta.annotation.PostConstruct;
 import java.io.BufferedReader;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 
 @Component
 public class BadWordSeeder {
+    private final BadWordRepository badWordRepository;
 
-    @Autowired
-    private BadWordRepository badWordRepository;
+    public BadWordSeeder(BadWordRepository badWordRepository) {
+        this.badWordRepository = badWordRepository;
+    }
 
     @PostConstruct
-    public void seed() {
-        try (InputStream is = getClass().getResourceAsStream("/badwords.txt")) {
-            if (is == null) {
-                System.out.println("BadWordSeeder: badwords.txt not found in resources!");
-                return;
-            }
+    public void seed() throws Exception {
+        if(badWordRepository.count() > 0) return;
 
-            try (BufferedReader reader = new BufferedReader(new InputStreamReader(is))) {
-                String line;
-                int count = 0;
-
-                while ((line = reader.readLine()) != null) {
-                    line = line.trim().toLowerCase();
-
-                    if (!line.isEmpty() && !badWordRepository.existsByWord(line)) {
-                        BadWord bw = new BadWord();
-                        bw.setWord(line);
-                        badWordRepository.save(bw);
-                        count++;
-                    }
+        try(BufferedReader br = new BufferedReader(new InputStreamReader(
+                getClass().getResourceAsStream("/badwords.txt")))) {
+            String line;
+            while((line = br.readLine()) != null) {
+                String word = line.trim().toLowerCase();
+                if(!word.isEmpty() && !badWordRepository.existsByWord(word)) {
+                    badWordRepository.save(new BadWord(word));
                 }
-
-                System.out.println("BadWordSeeder: Seeded " + count + " bad words into database.");
             }
-
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 }
