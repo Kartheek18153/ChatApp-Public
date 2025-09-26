@@ -18,7 +18,6 @@ public class BadWordSeeder {
 
     @PostConstruct
     public void seed() {
-        // Load the badwords.txt from resources
         try (InputStream is = getClass().getResourceAsStream("/badwords.txt")) {
             if (is == null) {
                 System.out.println("BadWordSeeder: badwords.txt not found in resources!");
