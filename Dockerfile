@@ -1,26 +1,28 @@
-# Use official OpenJDK 17 Alpine image
+# Use OpenJDK 17 as base image
 FROM eclipse-temurin:17-jdk-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Install Maven (needed to build the app)
-RUN apk add --no-cache maven bash
-
-# Copy pom.xml and download dependencies (caching)
+# Copy Maven wrapper and POM (if using mvnw)
+COPY mvnw .
+COPY .mvn .mvn
 COPY pom.xml .
 
-# Pre-download dependencies to speed up builds
-RUN mvn dependency:go-offline
+# Make mvnw executable
+RUN chmod +x mvnw
 
-# Copy the source code
+# Download dependencies offline to cache
+RUN ./mvnw dependency:go-offline -B
+
+# Copy source code
 COPY src ./src
 
 # Build the project without running tests
-RUN mvn clean package -DskipTests
+RUN ./mvnw clean package -DskipTests -B
 
 # Expose port 8080
 EXPOSE 8080
 
-# Run the Spring Boot application
-ENTRYPOINT ["java","-jar","target/chatapp-0.0.1-SNAPSHOT.jar"]
+# Run the jar
+CMD ["java", "-jar", "target/chatapp-0.0.1-SNAPSHOT.jar"]
