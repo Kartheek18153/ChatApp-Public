@@ -45,6 +45,16 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String username = payload.split("\"username\":\"")[1].split("\"")[0];
         String content = payload.split("\"content\":\"")[1].split("\"")[0];
 
+        // SYSTEM message if user joined chat
+        if(content.startsWith("__joined__")) {
+            String userJoined = content.replace("__joined__", "");
+            String systemMsg = String.format("{\"username\":\"SYSTEM\",\"content\":\"%s joined the chat\",\"timestamp\":\"%s\"}",
+                    userJoined, Instant.now());
+            broadcast(systemMsg);
+            return;
+        }
+
+        // Save normal message
         Message msg = new Message();
         msg.setUsername(username);
         msg.setContent(content);
@@ -54,19 +64,13 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String broadcast = String.format("{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
                 msg.getUsername(), msg.getContent(), msg.getTimestamp());
 
-        for (WebSocketSession s : sessions) {
-            if (s.isOpen()) s.sendMessage(new TextMessage(broadcast));
-        }
+        broadcast(broadcast);
     }
 
-    // New method to broadcast SYSTEM messages
-    public void broadcastSystem(String content) {
-        String messageJson = String.format("{\"username\":\"SYSTEM\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
-                content, Instant.now());
-
+    private void broadcast(String message) {
         for (WebSocketSession s : sessions) {
             try {
-                if (s.isOpen()) s.sendMessage(new TextMessage(messageJson));
+                if (s.isOpen()) s.sendMessage(new TextMessage(message));
             } catch (Exception e) {
                 e.printStackTrace();
             }
