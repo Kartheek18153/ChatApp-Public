@@ -46,7 +46,6 @@
 let ws;
 let myUsername = "";
 
-// Show pages
 function showLogin() {
   document.getElementById("loginPage").classList.remove("hidden");
   document.getElementById("registerPage").classList.add("hidden");
@@ -63,106 +62,84 @@ function showMessaging() {
   document.getElementById("messagingPage").classList.remove("hidden");
 }
 
-// Registration
+// --- Auth ---
 async function register() {
   const username = document.getElementById("registerUsername").value.trim();
   const password = document.getElementById("registerPassword").value.trim();
   const confirm = document.getElementById("registerConfirm").value.trim();
+  if(password !== confirm){ document.getElementById("registerMsg").innerText="Passwords do not match!"; return; }
 
-  if (!username || !password || !confirm) {
-    document.getElementById("registerMsg").innerText = "Please fill all fields!";
-    return;
-  }
-
-  if(password !== confirm){ 
-    document.getElementById("registerMsg").innerText="Passwords do not match!";
-    return;
-  }
-
-  try {
-    const response = await fetch('/auth/register', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({username,password})
-    });
-    const data = await response.json();
-    document.getElementById("registerMsg").innerText = data.message || (data.success ? "Registration successful!" : "Registration failed!");
-    if(data.success) showLogin();
-  } catch(err){
-    console.error(err);
-    document.getElementById("registerMsg").innerText = "Server error. Try again later.";
-  }
+  const response = await fetch('/auth/register', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username,password})
+  });
+  const data = await response.json();
+  document.getElementById("registerMsg").innerText = data.message;
+  if(data.success) showLogin();
 }
 
-// Login
 async function login() {
   const username = document.getElementById("loginUsername").value.trim();
   const password = document.getElementById("loginPassword").value.trim();
 
-  if (!username || !password) {
-    document.getElementById("loginMsg").innerText = "Please enter both username and password!";
-    return;
-  }
+  const response = await fetch('/auth/login', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({username,password})
+  });
+  const data = await response.json();
+  document.getElementById("loginMsg").innerText = data.message;
 
-  try {
-    const response = await fetch('/auth/login', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({username, password})
-    });
-
-    const data = await response.json();
-    document.getElementById("loginMsg").innerText =
-      data.message || (data.success ? "Login successful!" : "Login failed!");
-
-    if(data.success){
-      myUsername = username;
-      document.getElementById("userDisplay").innerText = myUsername;
-      showMessaging();
-      startChat();
-    }
-  } catch (err) {
-    console.error(err);
-    document.getElementById("loginMsg").innerText = "Server error. Try again later.";
+  if(data.success){
+    myUsername = username;
+    document.getElementById("userDisplay").innerText = myUsername;
+    showMessaging();
+    startChat();
   }
 }
 
-// WebSocket chat
+// --- WebSocket Chat ---
 function startChat(){
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
   ws = new WebSocket(`${protocol}://${window.location.host}/chat`);
 
-  ws.onopen = ()=>console.log("Connected to WebSocket server");
+  ws.onopen = () => console.log("Connected to WebSocket server");
+
   ws.onmessage = event => {
     const msg = JSON.parse(event.data);
-    const messagesDiv = document.getElementById("messages");
-    const bubble = document.createElement("div");
-    const time = new Date(msg.timestamp).toLocaleTimeString();
-
-    if(msg.username === myUsername){
-      bubble.className = "self-end bg-green-500 text-white px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
-      bubble.textContent = `[${time}] You: ${msg.content}`;
-    } else if(msg.username === "SYSTEM"){
-      bubble.className = "self-center bg-yellow-200 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words font-bold";
-      bubble.textContent = `[${time}] ${msg.content}`;
-    } else {
-      bubble.className = "self-start bg-gray-300 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
-      bubble.textContent = `[${time}] ${msg.username}: ${msg.content}`;
-    }
-
-    messagesDiv.appendChild(bubble);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    appendMessage(msg);
   };
 
-  ws.onclose = ()=>console.log("Disconnected from server");
+  ws.onclose = () => console.log("Disconnected from server");
+}
+
+function appendMessage(msg){
+  const messagesDiv = document.getElementById("messages");
+  const bubble = document.createElement("div");
+  const time = new Date(msg.timestamp).toLocaleTimeString();
+
+  if(msg.username === myUsername){
+    bubble.className = "self-end bg-green-500 text-white px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
+    bubble.textContent = `[${time}] You: ${msg.content}`;
+  } else if(msg.username === "SYSTEM"){
+    bubble.className = "self-center bg-yellow-200 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words font-bold";
+    bubble.textContent = `[${time}] ${msg.content}`;
+  } else {
+    bubble.className = "self-start bg-gray-300 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
+    bubble.textContent = `[${time}] ${msg.username}: ${msg.content}`;
+  }
+
+  messagesDiv.appendChild(bubble);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
 }
 
 function sendMessage(){
   const input = document.getElementById("messageInput");
   const text = input.value.trim();
-  if(!text || !ws) return;
-  ws.send(JSON.stringify({username:myUsername, content:text}));
-  input.value="";
+  if(!text||!ws) return;
+  ws.send(JSON.stringify({username:myUsername,content:text}));
+  input.value = "";
 }
 </script>
 </body>
