@@ -20,7 +20,10 @@
       <h2 class="text-2xl font-bold mb-4 text-gray-700">Login</h2>
       <div class="space-y-3">
         <input id="loginUsername" type="text" placeholder="Username" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
-        <input id="loginPassword" type="password" placeholder="Password" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
+        <div class="relative">
+          <input id="loginPassword" type="password" placeholder="Password" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
+          <button type="button" onclick="togglePassword('loginPassword')" class="absolute right-2 top-2 text-gray-500 text-sm">Show</button>
+        </div>
         <button onclick="login()" class="bg-gradient-to-r from-green-500 to-green-600 hover:opacity-90 text-white px-4 py-2 rounded w-full transition">Login</button>
       </div>
       <p class="text-sm mt-3">Don’t have an account? 
@@ -34,8 +37,14 @@
       <h2 class="text-2xl font-bold mb-4 text-gray-700">Register</h2>
       <div class="space-y-3">
         <input id="registerUsername" type="text" placeholder="Username" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
-        <input id="registerPassword" type="password" placeholder="Password" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
-        <input id="registerConfirm" type="password" placeholder="Confirm Password" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
+        <div class="relative">
+          <input id="registerPassword" type="password" placeholder="Password" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
+          <button type="button" onclick="togglePassword('registerPassword')" class="absolute right-2 top-2 text-gray-500 text-sm">Show</button>
+        </div>
+        <div class="relative">
+          <input id="registerConfirm" type="password" placeholder="Confirm Password" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
+          <button type="button" onclick="togglePassword('registerConfirm')" class="absolute right-2 top-2 text-gray-500 text-sm">Show</button>
+        </div>
         <button onclick="register()" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:opacity-90 text-white px-4 py-2 rounded w-full transition">Register</button>
       </div>
       <p class="text-sm mt-3">Already have an account? 
@@ -46,128 +55,146 @@
 
     <!-- Messaging Page -->
     <div id="messagingPage" class="hidden flex flex-col h-[500px]">
+      <!-- Top bar -->
       <div class="flex justify-between items-center mb-3">
         <h2 class="text-xl font-bold text-gray-700">Welcome, <span id="userDisplay"></span></h2>
-        <button onclick="logout()" class="text-sm bg-red-500 text-white px-3 py-1 rounded hover:opacity-90 transition">Logout</button>
+        <button onclick="showLogin()" class="text-sm bg-red-500 text-white px-3 py-1 rounded hover:opacity-90 transition">Logout</button>
       </div>
 
+      <!-- Messages area -->
       <div id="messages" class="border p-3 flex-1 overflow-y-auto bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-lg mb-4 flex flex-col shadow-inner"></div>
 
+      <!-- Input area -->
       <div class="flex">
         <input id="messageInput" type="text" placeholder="Type your message..." class="border p-2 rounded-l-lg w-full focus:ring focus:ring-indigo-300">
         <button onclick="sendMessage()" class="bg-gradient-to-r from-green-500 to-green-600 hover:opacity-90 text-white px-4 py-2 rounded-r-lg transition">Send</button>
       </div>
     </div>
 
+    <!-- Footer -->
     <div class="text-center text-xs text-gray-400 mt-6">
       © 2025 Clario. All rights reserved.
     </div>
+
   </div>
 
-<script>
-let ws;
-let myUsername = "";
+  <script>
+    let ws;
+    let myUsername = "";
 
-function showLogin() {
-  document.getElementById("loginPage").classList.remove("hidden");
-  document.getElementById("registerPage").classList.add("hidden");
-  document.getElementById("messagingPage").classList.add("hidden");
-}
-function showRegister() {
-  document.getElementById("loginPage").classList.add("hidden");
-  document.getElementById("registerPage").classList.remove("hidden");
-  document.getElementById("messagingPage").classList.add("hidden");
-}
-function showMessaging() {
-  document.getElementById("loginPage").classList.add("hidden");
-  document.getElementById("registerPage").classList.add("hidden");
-  document.getElementById("messagingPage").classList.remove("hidden");
-}
+    function togglePassword(id) {
+      const input = document.getElementById(id);
+      input.type = input.type === "password" ? "text" : "password";
+    }
 
-async function register() {
-  const username = document.getElementById("registerUsername").value.trim();
-  const password = document.getElementById("registerPassword").value.trim();
-  const confirm = document.getElementById("registerConfirm").value.trim();
-  if(password!==confirm){ document.getElementById("registerMsg").innerText="Passwords do not match!"; return; }
+    function showLogin() {
+      document.getElementById("loginPage").classList.remove("hidden");
+      document.getElementById("registerPage").classList.add("hidden");
+      document.getElementById("messagingPage").classList.add("hidden");
+    }
+    function showRegister() {
+      document.getElementById("loginPage").classList.add("hidden");
+      document.getElementById("registerPage").classList.remove("hidden");
+      document.getElementById("messagingPage").classList.add("hidden");
+    }
+    function showMessaging() {
+      document.getElementById("loginPage").classList.add("hidden");
+      document.getElementById("registerPage").classList.add("hidden");
+      document.getElementById("messagingPage").classList.remove("hidden");
+    }
 
-  const res = await fetch('/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,password})});
-  const msg = await res.text();
-  document.getElementById("registerMsg").innerText=msg;
-  if(msg.includes("successful")) showLogin();
-}
+    // --- Auth ---
+    async function register() {
+      const username = document.getElementById("registerUsername").value.trim();
+      const password = document.getElementById("registerPassword").value.trim();
+      const confirm = document.getElementById("registerConfirm").value.trim();
+      if(password !== confirm){ document.getElementById("registerMsg").innerText="Passwords do not match!"; return; }
 
-async function login() {
-  const username = document.getElementById("loginUsername").value.trim();
-  const password = document.getElementById("loginPassword").value.trim();
+      const response = await fetch('/auth/register', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({username,password})
+      });
+      const message = await response.text();
+      document.getElementById("registerMsg").innerText = message;
+      if(message.includes("successful")) showLogin();
+    }
 
-  const res = await fetch('/auth/login',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,password})});
-  const msg = await res.text();
-  document.getElementById("loginMsg").innerText=msg;
+    async function login() {
+      const username = document.getElementById("loginUsername").value.trim();
+      const password = document.getElementById("loginPassword").value.trim();
 
-  if(msg.includes("successful")){
-    myUsername=username;
-    document.getElementById("userDisplay").innerText=myUsername;
-    showMessaging();
-    startChat();
-  }
-}
+      const response = await fetch('/auth/login', {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({username,password})
+      });
+      const message = await response.text();
+      document.getElementById("loginMsg").innerText = message;
 
-function logout() {
-  myUsername="";
-  showLogin();
-}
+      if(message.includes("successful")){
+        myUsername = username;
+        document.getElementById("userDisplay").innerText = myUsername;
+        showMessaging();
+        startChat();
+      }
+    }
 
-function startChat() {
-  const protocol = window.location.protocol==="https:" ? "wss" : "ws";
-  ws = new WebSocket(`${protocol}://${window.location.host}/chat`);
-  
-  ws.onopen=()=>console.log("Connected");
-  ws.onmessage=event=>{
-    const msg=JSON.parse(event.data);
-    appendMessage(msg);
-  };
-  ws.onclose=()=>console.log("Disconnected");
-}
+    // --- WebSocket Chat ---
+    function startChat(){
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      ws = new WebSocket(`${protocol}://${window.location.host}/chat`);
 
-function appendMessage(msg){
-  const messagesDiv=document.getElementById("messages");
-  const wrapper=document.createElement("div");
-  wrapper.className="mb-3 max-w-xs";
+      ws.onopen = () => console.log("Connected to WebSocket server");
+      ws.onmessage = event => {
+        const msg = JSON.parse(event.data);
+        appendMessage(msg);
+      };
+      ws.onclose = () => console.log("Disconnected from server");
+    }
 
-  const bubble=document.createElement("div");
-  const timeText=document.createElement("div");
-  timeText.className="text-[10px] text-gray-500 mt-1";
+    function appendMessage(msg){
+      const messagesDiv = document.getElementById("messages");
 
-  const time=new Date(msg.timestamp).toLocaleTimeString();
+      const wrapper = document.createElement("div");
+      wrapper.className = "mb-3 max-w-xs";
 
-  if(msg.username===myUsername){
-    wrapper.classList.add("self-end","text-right");
-    bubble.className="bg-green-500 text-white px-4 py-2 rounded-2xl shadow";
-    bubble.textContent=`You: ${msg.content}`;
-  } else if(msg.username==="SYSTEM"){
-    wrapper.classList.add("self-center","text-center");
-    bubble.className="bg-yellow-200 text-black px-4 py-2 rounded-2xl font-bold shadow italic";
-    bubble.textContent=msg.content;
-  } else {
-    wrapper.classList.add("self-start","text-left");
-    bubble.className="bg-gray-300 text-black px-4 py-2 rounded-2xl shadow";
-    bubble.textContent=`${msg.username}: ${msg.content}`;
-  }
+      const bubble = document.createElement("div");
+      const timeText = document.createElement("div");
+      timeText.className = "text-[10px] text-gray-500 mt-1";
 
-  timeText.textContent=time;
-  wrapper.appendChild(bubble);
-  wrapper.appendChild(timeText);
-  messagesDiv.appendChild(wrapper);
-  messagesDiv.scrollTop=messagesDiv.scrollHeight;
-}
+      const time = new Date(msg.timestamp).toLocaleTimeString();
 
-function sendMessage(){
-  const input=document.getElementById("messageInput");
-  const text=input.value.trim();
-  if(!text||!ws) return;
-  ws.send(JSON.stringify({username:myUsername, content:text}));
-  input.value="";
-}
-</script>
+      if(msg.username === myUsername){
+        wrapper.classList.add("self-end","text-right");
+        bubble.className = "bg-green-500 text-white px-4 py-2 rounded-2xl shadow";
+        bubble.textContent = `You: ${msg.content}`;
+        timeText.textContent = time;
+      } else if(msg.username === "SYSTEM"){
+        wrapper.classList.add("self-center","text-center");
+        bubble.className = "bg-yellow-200 text-black px-4 py-2 rounded-2xl font-bold shadow";
+        bubble.textContent = msg.content;
+        timeText.textContent = time;
+      } else {
+        wrapper.classList.add("self-start","text-left");
+        bubble.className = "bg-gray-300 text-black px-4 py-2 rounded-2xl shadow";
+        bubble.textContent = `${msg.username}: ${msg.content}`;
+        timeText.textContent = time;
+      }
+
+      wrapper.appendChild(bubble);
+      wrapper.appendChild(timeText);
+      messagesDiv.appendChild(wrapper);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    function sendMessage(){
+      const input = document.getElementById("messageInput");
+      const text = input.value.trim();
+      if(!text||!ws) return;
+      ws.send(JSON.stringify({username:myUsername,content:text}));
+      input.value = "";
+    }
+  </script>
 </body>
 </html>
