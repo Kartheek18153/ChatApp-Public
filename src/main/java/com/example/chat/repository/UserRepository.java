@@ -1,6 +1,6 @@
-package com.example.chat.repository;
+package com.example.clario.repository;
 
-import com.example.chat.model.User;
+import com.example.clario.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
