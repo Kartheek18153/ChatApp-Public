@@ -1,49 +1,38 @@
 package com.example.chat.controller;
 
-import org.springframework.http.ResponseEntity;
+import com.example.chat.model.User;
+import com.example.chat.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
 
-    // Simple in-memory user store (replace with DB later)
-    private final Map<String, String> users = new ConcurrentHashMap<>();
+    @Autowired
+    private UserRepository userRepository;
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody Map<String, String> body) {
-        String username = body.get("username");
-        String password = body.get("password");
-
-        if (username == null || password == null) {
-            return ResponseEntity.badRequest().body("Username and password are required");
+    public String register(@RequestBody User user) {
+        if (user.getUsername() == null || user.getPassword() == null) {
+            return "Username and password are required";
         }
-        if (users.containsKey(username)) {
-            return ResponseEntity.badRequest().body("Username already exists");
+        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+            return "Username already exists!";
         }
-
-        users.put(username, password);
-        return ResponseEntity.ok("Registration successful");
+        userRepository.save(user);
+        return "Registration successful!";
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody Map<String, String> body) {
-        String username = body.get("username");
-        String password = body.get("password");
-
-        if (username == null || password == null) {
-            return ResponseEntity.badRequest().body("Username and password are required");
+    public String login(@RequestBody User user) {
+        if (user.getUsername() == null || user.getPassword() == null) {
+            return "Username and password are required";
         }
-        if (!users.containsKey(username)) {
-            return ResponseEntity.status(401).body("Invalid username");
-        }
-        if (!users.get(username).equals(password)) {
-            return ResponseEntity.status(401).body("Invalid password");
-        }
-
-        return ResponseEntity.ok("Login successful");
+        return userRepository.findByUsername(user.getUsername())
+                .map(u -> u.getPassword().equals(user.getPassword())
+                        ? "Login successful!"
+                        : "Invalid password!")
+                .orElse("Invalid username!");
     }
 }
