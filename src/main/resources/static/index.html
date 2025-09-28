@@ -2,24 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Chat App</title>
+  <title>Clario</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    /* Animation for new messages */
-    .fade-in {
-      animation: fadeIn 0.3s ease-out;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Hover effect for bubbles */
-    .bubble:hover {
-      transform: scale(1.02);
-      transition: transform 0.2s;
-    }
-  </style>
 </head>
 <body class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center min-h-screen font-sans">
 
@@ -27,7 +11,7 @@
 
     <!-- App Logo / Title -->
     <div class="text-center mb-6">
-      <div class="text-4xl font-extrabold text-indigo-600 tracking-wide">ChatApp</div>
+      <div class="text-4xl font-extrabold text-indigo-600 tracking-wide">Clario</div>
       <p class="text-sm text-gray-500">Real-time Messaging Made Simple</p>
     </div>
 
@@ -62,145 +46,128 @@
 
     <!-- Messaging Page -->
     <div id="messagingPage" class="hidden flex flex-col h-[500px]">
-      <!-- Top bar -->
       <div class="flex justify-between items-center mb-3">
         <h2 class="text-xl font-bold text-gray-700">Welcome, <span id="userDisplay"></span></h2>
-        <button onclick="showLogin()" class="text-sm bg-red-500 text-white px-3 py-1 rounded hover:opacity-90 transition">Logout</button>
+        <button onclick="logout()" class="text-sm bg-red-500 text-white px-3 py-1 rounded hover:opacity-90 transition">Logout</button>
       </div>
 
-      <!-- Messages area -->
       <div id="messages" class="border p-3 flex-1 overflow-y-auto bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-lg mb-4 flex flex-col shadow-inner"></div>
 
-      <!-- Input area -->
       <div class="flex">
         <input id="messageInput" type="text" placeholder="Type your message..." class="border p-2 rounded-l-lg w-full focus:ring focus:ring-indigo-300">
         <button onclick="sendMessage()" class="bg-gradient-to-r from-green-500 to-green-600 hover:opacity-90 text-white px-4 py-2 rounded-r-lg transition">Send</button>
       </div>
     </div>
 
-    <!-- Footer -->
     <div class="text-center text-xs text-gray-400 mt-6">
-      © 2025 ChatApp. All rights reserved.
+      © 2025 Clario. All rights reserved.
     </div>
-
   </div>
 
-  <script>
-    let ws;
-    let myUsername = "";
+<script>
+let ws;
+let myUsername = "";
 
-    function showLogin() {
-      document.getElementById("loginPage").classList.remove("hidden");
-      document.getElementById("registerPage").classList.add("hidden");
-      document.getElementById("messagingPage").classList.add("hidden");
-    }
-    function showRegister() {
-      document.getElementById("loginPage").classList.add("hidden");
-      document.getElementById("registerPage").classList.remove("hidden");
-      document.getElementById("messagingPage").classList.add("hidden");
-    }
-    function showMessaging() {
-      document.getElementById("loginPage").classList.add("hidden");
-      document.getElementById("registerPage").classList.add("hidden");
-      document.getElementById("messagingPage").classList.remove("hidden");
-    }
+function showLogin() {
+  document.getElementById("loginPage").classList.remove("hidden");
+  document.getElementById("registerPage").classList.add("hidden");
+  document.getElementById("messagingPage").classList.add("hidden");
+}
+function showRegister() {
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("registerPage").classList.remove("hidden");
+  document.getElementById("messagingPage").classList.add("hidden");
+}
+function showMessaging() {
+  document.getElementById("loginPage").classList.add("hidden");
+  document.getElementById("registerPage").classList.add("hidden");
+  document.getElementById("messagingPage").classList.remove("hidden");
+}
 
-    // --- Auth ---
-    async function register() {
-      const username = document.getElementById("registerUsername").value.trim();
-      const password = document.getElementById("registerPassword").value.trim();
-      const confirm = document.getElementById("registerConfirm").value.trim();
-      if (password !== confirm) {
-        document.getElementById("registerMsg").innerText = "Passwords do not match!";
-        return;
-      }
+async function register() {
+  const username = document.getElementById("registerUsername").value.trim();
+  const password = document.getElementById("registerPassword").value.trim();
+  const confirm = document.getElementById("registerConfirm").value.trim();
+  if(password!==confirm){ document.getElementById("registerMsg").innerText="Passwords do not match!"; return; }
 
-      const response = await fetch('/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const message = await response.text();
-      document.getElementById("registerMsg").innerText = message;
-      if (message.includes("successful")) showLogin();
-    }
+  const res = await fetch('/auth/register', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,password})});
+  const msg = await res.text();
+  document.getElementById("registerMsg").innerText=msg;
+  if(msg.includes("successful")) showLogin();
+}
 
-    async function login() {
-      const username = document.getElementById("loginUsername").value.trim();
-      const password = document.getElementById("loginPassword").value.trim();
+async function login() {
+  const username = document.getElementById("loginUsername").value.trim();
+  const password = document.getElementById("loginPassword").value.trim();
 
-      const response = await fetch('/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-      const message = await response.text();
-      document.getElementById("loginMsg").innerText = message;
+  const res = await fetch('/auth/login',{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({username,password})});
+  const msg = await res.text();
+  document.getElementById("loginMsg").innerText=msg;
 
-      if (message.includes("successful")) {
-        myUsername = username;
-        document.getElementById("userDisplay").innerText = myUsername;
-        showMessaging();
-        startChat();
-      }
-    }
+  if(msg.includes("successful")){
+    myUsername=username;
+    document.getElementById("userDisplay").innerText=myUsername;
+    showMessaging();
+    startChat();
+  }
+}
 
-    // --- WebSocket Chat ---
-    function startChat() {
-      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
-      ws = new WebSocket(`${protocol}://${window.location.host}/chat`);
+function logout() {
+  myUsername="";
+  showLogin();
+}
 
-      ws.onopen = () => console.log("Connected to WebSocket server");
-      ws.onmessage = event => {
-        const msg = JSON.parse(event.data);
-        appendMessage(msg);
-      };
-      ws.onclose = () => console.log("Disconnected from server");
-    }
+function startChat() {
+  const protocol = window.location.protocol==="https:" ? "wss" : "ws";
+  ws = new WebSocket(`${protocol}://${window.location.host}/chat`);
+  
+  ws.onopen=()=>console.log("Connected");
+  ws.onmessage=event=>{
+    const msg=JSON.parse(event.data);
+    appendMessage(msg);
+  };
+  ws.onclose=()=>console.log("Disconnected");
+}
 
-    function appendMessage(msg) {
-      const messagesDiv = document.getElementById("messages");
+function appendMessage(msg){
+  const messagesDiv=document.getElementById("messages");
+  const wrapper=document.createElement("div");
+  wrapper.className="mb-3 max-w-xs";
 
-      const wrapper = document.createElement("div");
-      wrapper.className = "mb-3 max-w-xs fade-in";
+  const bubble=document.createElement("div");
+  const timeText=document.createElement("div");
+  timeText.className="text-[10px] text-gray-500 mt-1";
 
-      const bubble = document.createElement("div");
-      bubble.classList.add("bubble"); // hover effect
-      const timeText = document.createElement("div");
-      timeText.className = "text-[10px] text-gray-500 mt-1";
+  const time=new Date(msg.timestamp).toLocaleTimeString();
 
-      const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  if(msg.username===myUsername){
+    wrapper.classList.add("self-end","text-right");
+    bubble.className="bg-green-500 text-white px-4 py-2 rounded-2xl shadow";
+    bubble.textContent=`You: ${msg.content}`;
+  } else if(msg.username==="SYSTEM"){
+    wrapper.classList.add("self-center","text-center");
+    bubble.className="bg-yellow-200 text-black px-4 py-2 rounded-2xl font-bold shadow italic";
+    bubble.textContent=msg.content;
+  } else {
+    wrapper.classList.add("self-start","text-left");
+    bubble.className="bg-gray-300 text-black px-4 py-2 rounded-2xl shadow";
+    bubble.textContent=`${msg.username}: ${msg.content}`;
+  }
 
-      if (msg.username === myUsername) {
-        wrapper.classList.add("self-end", "text-right");
-        bubble.className += " bg-green-500 text-white px-4 py-2 rounded-2xl shadow";
-        bubble.textContent = `You: ${msg.content}`;
-        timeText.textContent = time;
-      } else if (msg.username === "SYSTEM") {
-        wrapper.classList.add("self-center", "text-center");
-        bubble.className += " bg-yellow-200 text-black px-4 py-2 rounded-2xl font-bold shadow";
-        bubble.textContent = msg.content;
-        timeText.textContent = time;
-      } else {
-        wrapper.classList.add("self-start", "text-left");
-        bubble.className += " bg-indigo-200 text-gray-800 px-4 py-2 rounded-2xl shadow";
-        bubble.textContent = `${msg.username}: ${msg.content}`;
-        timeText.textContent = time;
-      }
+  timeText.textContent=time;
+  wrapper.appendChild(bubble);
+  wrapper.appendChild(timeText);
+  messagesDiv.appendChild(wrapper);
+  messagesDiv.scrollTop=messagesDiv.scrollHeight;
+}
 
-      wrapper.appendChild(bubble);
-      wrapper.appendChild(timeText);
-      messagesDiv.appendChild(wrapper);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-    }
-
-    function sendMessage() {
-      const input = document.getElementById("messageInput");
-      const text = input.value.trim();
-      if (!text || !ws) return;
-      ws.send(JSON.stringify({ username: myUsername, content: text }));
-      input.value = "";
-    }
-  </script>
+function sendMessage(){
+  const input=document.getElementById("messageInput");
+  const text=input.value.trim();
+  if(!text||!ws) return;
+  ws.send(JSON.stringify({username:myUsername, content:text}));
+  input.value="";
+}
+</script>
 </body>
 </html>
