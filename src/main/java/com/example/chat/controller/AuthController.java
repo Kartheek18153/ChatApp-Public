@@ -12,44 +12,38 @@ import java.util.Optional;
 public class AuthController {
 
     private final UserRepository userRepository;
-    private final ChatWebSocketHandler chatWebSocketHandler;
 
-    public AuthController(UserRepository userRepository, ChatWebSocketHandler chatWebSocketHandler) {
+    public AuthController(UserRepository userRepository) {
         this.userRepository = userRepository;
-        this.chatWebSocketHandler = chatWebSocketHandler;
     }
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody User user) {
-        if(user.getUsername() == null || user.getPassword() == null){
+        if(user.getUsername() == null || user.getPassword() == null) {
             return ResponseEntity.badRequest().body("Username and password are required");
         }
 
         Optional<User> existing = userRepository.findByUsername(user.getUsername());
-        if(existing.isPresent()){
+        if(existing.isPresent()) {
             return ResponseEntity.badRequest().body("Username already exists");
         }
 
         userRepository.save(user);
-
-        // Broadcast new user joined
-        chatWebSocketHandler.broadcastSystemMessage(user.getUsername() + " joined the chat!");
-
         return ResponseEntity.ok("Registration successful");
     }
 
     @PostMapping("/login")
     public ResponseEntity<String> login(@RequestBody User user) {
-        if(user.getUsername() == null || user.getPassword() == null){
+        if(user.getUsername() == null || user.getPassword() == null) {
             return ResponseEntity.badRequest().body("Username and password are required");
         }
 
         Optional<User> existing = userRepository.findByUsername(user.getUsername());
-        if(existing.isEmpty()){
+        if(existing.isEmpty()) {
             return ResponseEntity.status(401).body("Invalid username");
         }
 
-        if(!existing.get().getPassword().equals(user.getPassword())){
+        if(!existing.get().getPassword().equals(user.getPassword())) {
             return ResponseEntity.status(401).body("Invalid password");
         }
 
