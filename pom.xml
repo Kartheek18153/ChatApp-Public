@@ -11,15 +11,14 @@
     <version>0.0.1-SNAPSHOT</version>
     <packaging>jar</packaging>
 
-    <name>ChatApp-Public</name>
+    <name>Clario</name>
     <description>Real-time WebSocket Chat Application</description>
 
-    <!-- Hardcode Spring Boot version -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
         <version>3.2.5</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <relativePath/>
     </parent>
 
     <properties>
@@ -28,19 +27,19 @@
 
     <dependencies>
 
-        <!-- Spring Boot Starter Web -->
+        <!-- Spring Boot Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- Spring Boot Starter WebSocket -->
+        <!-- Spring Boot WebSocket -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
-        <!-- Spring Boot Starter Data JPA -->
+        <!-- Spring Boot Data JPA -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>
