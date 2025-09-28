@@ -4,7 +4,7 @@ FROM eclipse-temurin:17-jdk-alpine
 # Set working directory
 WORKDIR /app
 
-# Install Maven (needed to build the app)
+# Install Maven and bash
 RUN apk add --no-cache maven bash
 
 # Copy pom.xml and download dependencies (caching)
@@ -13,10 +13,10 @@ COPY pom.xml .
 # Pre-download dependencies to speed up builds
 RUN mvn dependency:go-offline
 
-# Copy the source code
+# Copy source code
 COPY src ./src
 
-# Build the project without running tests
+# Build the Spring Boot app (skip tests for faster build)
 RUN mvn clean package -DskipTests
 
 # Expose port 8080
