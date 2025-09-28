@@ -22,40 +22,37 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody User user) {
-        if(user.getUsername() == null || user.getPassword() == null){
+        if(user.getUsername() == null || user.getPassword() == null) {
             return ResponseEntity.badRequest().body("Username and password are required");
         }
 
-        Optional<User> exists = userRepository.findByUsername(user.getUsername());
-        if(exists.isPresent()){
+        if(userRepository.findByUsername(user.getUsername()).isPresent()) {
             return ResponseEntity.badRequest().body("Username already exists");
         }
 
         userRepository.save(user);
 
-        // Notify all users
-        chatWebSocketHandler.broadcastSystemMessage(user.getUsername() + " joined the chat");
+        // Broadcast SYSTEM message
+        chatWebSocketHandler.broadcastSystem(user.getUsername() + " has joined the chat");
 
         return ResponseEntity.ok("Registration successful");
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody User user){
-        if(user.getUsername() == null || user.getPassword() == null){
+    public ResponseEntity<String> login(@RequestBody User user) {
+        if(user.getUsername() == null || user.getPassword() == null) {
             return ResponseEntity.badRequest().body("Username and password are required");
         }
 
-        Optional<User> exists = userRepository.findByUsername(user.getUsername());
-        if(!exists.isPresent()){
-            return ResponseEntity.status(401).body("Invalid username");
-        }
+        Optional<User> optionalUser = userRepository.findByUsername(user.getUsername());
+        if(optionalUser.isEmpty()) return ResponseEntity.status(401).body("Invalid username");
 
-        if(!exists.get().getPassword().equals(user.getPassword())){
+        if(!optionalUser.get().getPassword().equals(user.getPassword())) {
             return ResponseEntity.status(401).body("Invalid password");
         }
 
-        // Notify all users
-        chatWebSocketHandler.broadcastSystemMessage(user.getUsername() + " joined the chat");
+        // Broadcast SYSTEM message
+        chatWebSocketHandler.broadcastSystem(user.getUsername() + " has joined the chat");
 
         return ResponseEntity.ok("Login successful");
     }
