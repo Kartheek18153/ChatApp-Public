@@ -6,7 +6,7 @@ import com.example.chat.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
@@ -21,48 +21,42 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody Map<String, String> body) {
-        String username = body.get("username");
-        String password = body.get("password");
-
-        if (username == null || password == null) {
+    public ResponseEntity<String> register(@RequestBody User user) {
+        if(user.getUsername() == null || user.getPassword() == null){
             return ResponseEntity.badRequest().body("Username and password are required");
         }
 
-        if (userRepository.findByUsername(username).isPresent()) {
+        Optional<User> exists = userRepository.findByUsername(user.getUsername());
+        if(exists.isPresent()){
             return ResponseEntity.badRequest().body("Username already exists");
         }
 
-        User user = new User();
-        user.setUsername(username);
-        user.setPassword(password);
         userRepository.save(user);
 
-        // Broadcast system message to all clients
-        chatWebSocketHandler.broadcastSystemMessage(username + " has joined the chat");
+        // Notify all users
+        chatWebSocketHandler.broadcastSystemMessage(user.getUsername() + " joined the chat");
 
         return ResponseEntity.ok("Registration successful");
     }
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody Map<String, String> body) {
-        String username = body.get("username");
-        String password = body.get("password");
-
-        if (username == null || password == null) {
+    public ResponseEntity<String> login(@RequestBody User user){
+        if(user.getUsername() == null || user.getPassword() == null){
             return ResponseEntity.badRequest().body("Username and password are required");
         }
 
-        return userRepository.findByUsername(username)
-                .map(user -> {
-                    if (user.getPassword().equals(password)) {
-                        // Broadcast system message when user logs in
-                        chatWebSocketHandler.broadcastSystemMessage(username + " is online");
-                        return ResponseEntity.ok("Login successful");
-                    } else {
-                        return ResponseEntity.status(401).body("Invalid password");
-                    }
-                })
-                .orElse(ResponseEntity.status(401).body("Invalid username"));
+        Optional<User> exists = userRepository.findByUsername(user.getUsername());
+        if(!exists.isPresent()){
+            return ResponseEntity.status(401).body("Invalid username");
+        }
+
+        if(!exists.get().getPassword().equals(user.getPassword())){
+            return ResponseEntity.status(401).body("Invalid password");
+        }
+
+        // Notify all users
+        chatWebSocketHandler.broadcastSystemMessage(user.getUsername() + " joined the chat");
+
+        return ResponseEntity.ok("Login successful");
     }
 }
