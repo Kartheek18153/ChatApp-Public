@@ -23,7 +23,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-        // Send existing messages to newly connected user
+
+        // Send existing messages
         messageRepository.findAll().forEach(msg -> {
             try {
                 session.sendMessage(new TextMessage(
@@ -40,7 +41,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String payload = message.getPayload();
 
-        // Simple JSON parsing
         String username = payload.split("\"username\":\"")[1].split("\"")[0];
         String content = payload.split("\"content\":\"")[1].split("\"")[0];
 
@@ -55,6 +55,25 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
 
         for (WebSocketSession s : sessions) {
             if (s.isOpen()) s.sendMessage(new TextMessage(broadcast));
+        }
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
+        sessions.remove(session);
+    }
+
+    // Broadcast system message
+    public void broadcastSystemMessage(String content) {
+        String timestamp = Instant.now().toString();
+        String broadcast = String.format("{\"username\":\"SYSTEM\",\"content\":\"%s\",\"timestamp\":\"%s\"}", content, timestamp);
+
+        for (WebSocketSession s : sessions) {
+            try {
+                if (s.isOpen()) s.sendMessage(new TextMessage(broadcast));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 }
