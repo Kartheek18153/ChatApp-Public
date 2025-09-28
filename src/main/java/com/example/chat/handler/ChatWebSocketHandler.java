@@ -23,7 +23,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-        // Send all existing messages to new user
+
+        // Send all previous messages to newly connected user
         messageRepository.findAll().forEach(msg -> {
             try {
                 session.sendMessage(new TextMessage(
@@ -39,6 +40,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String payload = message.getPayload();
+
+        // Parse simple JSON
         String username = payload.split("\"username\":\"")[1].split("\"")[0];
         String content = payload.split("\"content\":\"")[1].split("\"")[0];
 
@@ -51,25 +54,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String broadcast = String.format("{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
                 msg.getUsername(), msg.getContent(), msg.getTimestamp());
 
-        for(WebSocketSession s : sessions){
-            if(s.isOpen()) s.sendMessage(new TextMessage(broadcast));
-        }
-    }
-
-    public void broadcastSystemMessage(String content){
-        Message msg = new Message();
-        msg.setUsername("SYSTEM");
-        msg.setContent(content);
-        msg.setTimestamp(Instant.now());
-        messageRepository.save(msg);
-
-        String broadcast = String.format("{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
-                msg.getUsername(), msg.getContent(), msg.getTimestamp());
-
-        for(WebSocketSession s : sessions){
-            try{
-                if(s.isOpen()) s.sendMessage(new TextMessage(broadcast));
-            } catch(Exception e){ e.printStackTrace(); }
+        for (WebSocketSession s : sessions) {
+            if (s.isOpen()) s.sendMessage(new TextMessage(broadcast));
         }
     }
 }
