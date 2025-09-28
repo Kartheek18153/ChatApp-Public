@@ -23,8 +23,6 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-
-        // Send existing messages
         messageRepository.findAll().forEach(msg -> {
             try {
                 session.sendMessage(new TextMessage(
@@ -58,21 +56,18 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         }
     }
 
-    @Override
-    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) throws Exception {
-        sessions.remove(session);
-    }
-
-    // Broadcast system message
+    // Broadcast system messages to all clients
     public void broadcastSystemMessage(String content) {
-        String timestamp = Instant.now().toString();
-        String broadcast = String.format("{\"username\":\"SYSTEM\",\"content\":\"%s\",\"timestamp\":\"%s\"}", content, timestamp);
+        String broadcast = String.format("{\"username\":\"SYSTEM\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
+                content, Instant.now());
 
         for (WebSocketSession s : sessions) {
-            try {
-                if (s.isOpen()) s.sendMessage(new TextMessage(broadcast));
-            } catch (Exception e) {
-                e.printStackTrace();
+            if (s.isOpen()) {
+                try {
+                    s.sendMessage(new TextMessage(broadcast));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
