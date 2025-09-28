@@ -1,7 +1,7 @@
-package com.example.clario.handler;
+package com.example.chat.handler;
 
-import com.example.clario.model.Message;
-import com.example.clario.repository.MessageRepository;
+import com.example.chat.model.Message;
+import com.example.chat.repository.MessageRepository;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -23,26 +23,25 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
-        // Send all existing messages
+        // Send all existing messages to new user
         messageRepository.findAll().forEach(msg -> {
             try {
                 session.sendMessage(new TextMessage(
                         String.format("{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
                                 msg.getUsername(), msg.getContent(), msg.getTimestamp())
                 ));
-            } catch (Exception e) { e.printStackTrace(); }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         });
     }
 
     @Override
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String payload = message.getPayload();
-
-        // Simple JSON parsing
         String username = payload.split("\"username\":\"")[1].split("\"")[0];
         String content = payload.split("\"content\":\"")[1].split("\"")[0];
 
-        // Save message to DB
         Message msg = new Message();
         msg.setUsername(username);
         msg.setContent(content);
@@ -52,9 +51,25 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String broadcast = String.format("{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
                 msg.getUsername(), msg.getContent(), msg.getTimestamp());
 
-        // Send to all connected sessions
         for(WebSocketSession s : sessions){
             if(s.isOpen()) s.sendMessage(new TextMessage(broadcast));
+        }
+    }
+
+    public void broadcastSystemMessage(String content){
+        Message msg = new Message();
+        msg.setUsername("SYSTEM");
+        msg.setContent(content);
+        msg.setTimestamp(Instant.now());
+        messageRepository.save(msg);
+
+        String broadcast = String.format("{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
+                msg.getUsername(), msg.getContent(), msg.getTimestamp());
+
+        for(WebSocketSession s : sessions){
+            try{
+                if(s.isOpen()) s.sendMessage(new TextMessage(broadcast));
+            } catch(Exception e){ e.printStackTrace(); }
         }
     }
 }
