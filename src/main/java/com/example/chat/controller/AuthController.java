@@ -1,56 +1,55 @@
 package com.example.chat.controller;
 
-import com.example.chat.model.User;
-import com.example.chat.repository.UserRepository;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 public class AuthController {
 
-    private final UserRepository userRepository;
+    // Simple in-memory user storage (username → password)
+    private Map<String, String> users = new ConcurrentHashMap<>();
 
-    public AuthController(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
-
+    // ✅ Registration Endpoint
     @PostMapping("/register")
-    public Map<String, Object> register(@RequestBody Map<String, String> body){
-        String username = body.get("username");
-        String password = body.get("password");
-        Map<String, Object> res = new HashMap<>();
+    public ResponseEntity<String> register(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String password = request.get("password");
 
-        if(userRepository.findByUsername(username).isPresent()){
-            res.put("success", false);
-            res.put("message", "Username already exists!");
-        } else {
-            User user = new User();
-            user.setUsername(username);
-            user.setPassword(password);
-            userRepository.save(user);
-            res.put("success", true);
-            res.put("message", "Registered successfully!");
+        if (username == null || password == null || username.isEmpty() || password.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                 .body("Username and password are required!");
         }
-        return res;
+
+        if (users.containsKey(username)) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                                 .body("User already exists!");
+        }
+
+        users.put(username, password);
+        return ResponseEntity.ok("Registration successful!");
     }
 
+    // ✅ Login Endpoint
     @PostMapping("/login")
-    public Map<String, Object> login(@RequestBody Map<String, String> body){
-        String username = body.get("username");
-        String password = body.get("password");
-        Map<String, Object> res = new HashMap<>();
-        User user = userRepository.findByUsername(username).orElse(null);
+    public ResponseEntity<String> login(@RequestBody Map<String, String> request) {
+        String username = request.get("username");
+        String password = request.get("password");
 
-        if(user == null || !user.getPassword().equals(password)){
-            res.put("success", false);
-            res.put("message", "Invalid credentials!");
-        } else {
-            res.put("success", true);
-            res.put("message", "Login successful!");
+        if (username == null || password == null || username.isEmpty() || password.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                                 .body("Username and password are required!");
         }
-        return res;
+
+        if (users.containsKey(username) && users.get(username).equals(password)) {
+            return ResponseEntity.ok("Login successful!");
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                                 .body("Invalid username or password!");
+        }
     }
 }
