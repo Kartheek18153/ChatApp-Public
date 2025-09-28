@@ -5,38 +5,41 @@
 <title>Chat App</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-gradient-to-r from-indigo-100 via-purple-100 to-pink-100 flex items-center justify-center min-h-screen">
 
-<div class="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
+<div class="bg-white shadow-2xl rounded-2xl w-full max-w-md p-6">
 
   <!-- Login Page -->
   <div id="loginPage">
-    <h2 class="text-2xl font-bold mb-4">Login</h2>
-    <input id="loginUsername" type="text" placeholder="Username" class="border p-2 rounded w-full mb-2">
-    <input id="loginPassword" type="password" placeholder="Password" class="border p-2 rounded w-full mb-2">
-    <button onclick="login()" class="bg-green-500 text-white px-4 py-2 rounded w-full">Login</button>
-    <p class="text-sm mt-2">Don’t have an account? <a href="#" onclick="showRegister()" class="text-blue-500">Register</a></p>
-    <p id="loginMsg" class="text-sm text-red-500 mt-2"></p>
+    <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">Login</h2>
+    <input id="loginUsername" type="text" placeholder="Username" class="border p-2 rounded w-full mb-2 focus:ring-2 focus:ring-indigo-400">
+    <input id="loginPassword" type="password" placeholder="Password" class="border p-2 rounded w-full mb-2 focus:ring-2 focus:ring-indigo-400">
+    <button onclick="login()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded w-full transition">Login</button>
+    <p class="text-sm mt-2 text-center">Don’t have an account? <a href="#" onclick="showRegister()" class="text-blue-500 hover:underline">Register</a></p>
+    <p id="loginMsg" class="text-sm text-red-500 mt-2 text-center"></p>
   </div>
 
   <!-- Register Page -->
   <div id="registerPage" class="hidden">
-    <h2 class="text-2xl font-bold mb-4">Register</h2>
-    <input id="registerUsername" type="text" placeholder="Username" class="border p-2 rounded w-full mb-2">
-    <input id="registerPassword" type="password" placeholder="Password" class="border p-2 rounded w-full mb-2">
-    <input id="registerConfirm" type="password" placeholder="Confirm Password" class="border p-2 rounded w-full mb-2">
-    <button onclick="register()" class="bg-blue-500 text-white px-4 py-2 rounded w-full">Register</button>
-    <p class="text-sm mt-2">Already have an account? <a href="#" onclick="showLogin()" class="text-blue-500">Login</a></p>
-    <p id="registerMsg" class="text-sm text-red-500 mt-2"></p>
+    <h2 class="text-2xl font-bold mb-4 text-center text-gray-700">Register</h2>
+    <input id="registerUsername" type="text" placeholder="Username" class="border p-2 rounded w-full mb-2 focus:ring-2 focus:ring-blue-400">
+    <input id="registerPassword" type="password" placeholder="Password" class="border p-2 rounded w-full mb-2 focus:ring-2 focus:ring-blue-400">
+    <input id="registerConfirm" type="password" placeholder="Confirm Password" class="border p-2 rounded w-full mb-2 focus:ring-2 focus:ring-blue-400">
+    <button onclick="register()" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded w-full transition">Register</button>
+    <p class="text-sm mt-2 text-center">Already have an account? <a href="#" onclick="showLogin()" class="text-blue-500 hover:underline">Login</a></p>
+    <p id="registerMsg" class="text-sm text-red-500 mt-2 text-center"></p>
   </div>
 
   <!-- Messaging Page -->
   <div id="messagingPage" class="hidden flex flex-col h-[500px]">
-    <h2 class="text-xl font-bold mb-2">Welcome, <span id="userDisplay"></span></h2>
-    <div id="messages" class="border p-2 flex-1 overflow-y-auto bg-gray-50 rounded-lg mb-4 flex flex-col"></div>
+    <div class="flex justify-between items-center mb-2">
+      <h2 class="text-xl font-bold text-gray-700">Welcome, <span id="userDisplay" class="text-indigo-600"></span></h2>
+      <button onclick="logout()" class="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition">Logout</button>
+    </div>
+    <div id="messages" class="border p-2 flex-1 overflow-y-auto bg-gray-50 rounded-lg mb-4 flex flex-col shadow-inner"></div>
     <div class="flex">
-      <input id="messageInput" type="text" placeholder="Type your message..." class="border p-2 rounded-l-lg w-full">
-      <button onclick="sendMessage()" class="bg-green-500 text-white px-4 py-2 rounded-r-lg">Send</button>
+      <input id="messageInput" type="text" placeholder="Type your message..." class="border p-2 rounded-l-lg w-full focus:ring-2 focus:ring-green-400">
+      <button onclick="sendMessage()" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-r-lg transition">Send</button>
     </div>
   </div>
 
@@ -99,6 +102,14 @@ async function login() {
   }
 }
 
+async function logout() {
+  if(ws) ws.close();
+
+  await fetch('/auth/logout', { method:'POST' });
+  myUsername = "";
+  showLogin();
+}
+
 // --- WebSocket Chat ---
 function startChat(){
   const protocol = window.location.protocol === "https:" ? "wss" : "ws";
@@ -120,13 +131,13 @@ function appendMessage(msg){
   const time = new Date(msg.timestamp).toLocaleTimeString();
 
   if(msg.username === myUsername){
-    bubble.className = "self-end bg-green-500 text-white px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
+    bubble.className = "self-end bg-green-500 text-white px-4 py-2 rounded-2xl mb-2 max-w-xs break-words shadow";
     bubble.textContent = `[${time}] You: ${msg.content}`;
   } else if(msg.username === "SYSTEM"){
-    bubble.className = "self-center bg-yellow-200 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words font-bold";
+    bubble.className = "self-center bg-yellow-200 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words font-bold shadow";
     bubble.textContent = `[${time}] ${msg.content}`;
   } else {
-    bubble.className = "self-start bg-gray-300 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words";
+    bubble.className = "self-start bg-gray-300 text-black px-4 py-2 rounded-2xl mb-2 max-w-xs break-words shadow";
     bubble.textContent = `[${time}] ${msg.username}: ${msg.content}`;
   }
 
