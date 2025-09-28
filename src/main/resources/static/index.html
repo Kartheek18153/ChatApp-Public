@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,7 +6,7 @@
 <title>Chat App</title>
 <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+<body class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center min-h-screen">
 
 <div class="bg-white shadow-lg rounded-lg w-full max-w-md p-6">
 
@@ -33,7 +34,7 @@
   <!-- Messaging Page -->
   <div id="messagingPage" class="hidden flex flex-col h-[500px]">
     <h2 class="text-xl font-bold mb-2">Welcome, <span id="userDisplay"></span></h2>
-    <div id="messages" class="border p-2 flex-1 overflow-y-auto bg-gray-50 rounded-lg mb-4 flex flex-col"></div>
+    <div id="messages" class="border p-2 flex-1 overflow-y-auto bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-lg mb-4 flex flex-col shadow-inner"></div>
     <div class="flex">
       <input id="messageInput" type="text" placeholder="Type your message..." class="border p-2 rounded-l-lg w-full">
       <button onclick="sendMessage()" class="bg-green-500 text-white px-4 py-2 rounded-r-lg">Send</button>
@@ -74,7 +75,7 @@ async function register() {
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({username,password})
   });
-  const message = await response.text();   // 👈 now using .text()
+  const message = await response.text();
   document.getElementById("registerMsg").innerText = message;
   if(message.includes("successful")) showLogin();
 }
@@ -88,7 +89,7 @@ async function login() {
     headers:{'Content-Type':'application/json'},
     body: JSON.stringify({username,password})
   });
-  const message = await response.text();   // 👈 now using .text()
+  const message = await response.text();
   document.getElementById("loginMsg").innerText = message;
 
   if(message.includes("successful")){
@@ -144,3 +145,4 @@ function sendMessage(){
 </script>
 </body>
 </html>
+```
