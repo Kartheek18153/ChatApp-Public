@@ -12,7 +12,7 @@ public class Message {
 
     private String username;
     private String content;
-    private Instant timestamp = Instant.now();
+    private Instant timestamp;
 
     // Getters & Setters
     public Long getId() { return id; }
