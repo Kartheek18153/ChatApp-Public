@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -184,7 +185,12 @@
       ws.onopen = () => console.log("Connected to WebSocket server");
       ws.onmessage = event => {
         const msg = JSON.parse(event.data);
-        appendMessage(msg);
+        if (msg.type === "message") {
+          appendMessage(msg);
+        } else if (msg.type === "delete") {
+          const elem = document.getElementById("msg-" + msg.id);
+          if (elem) elem.remove();
+        }
       };
       ws.onclose = () => console.log("Disconnected from server");
     }
@@ -192,6 +198,7 @@
     function appendMessage(msg) {
       const messagesDiv = document.getElementById("messages");
       const wrapper = document.createElement("div");
+      wrapper.id = "msg-" + msg.id;
       wrapper.className = "mb-3 max-w-xs";
 
       const bubble = document.createElement("div");
@@ -201,8 +208,8 @@
 
       if (msg.username === myUsername) {
         wrapper.classList.add("self-end", "text-right");
-        bubble.className = "bg-green-500 text-white px-4 py-2 rounded-2xl shadow";
-        bubble.textContent = `You: ${msg.content}`;
+        bubble.className = "bg-green-500 text-white px-4 py-2 rounded-2xl shadow flex justify-between items-center";
+        bubble.innerHTML = `You: ${msg.content} <button onclick="deleteMessage(${msg.id})" class="ml-2 text-xs bg-red-500 px-2 py-1 rounded">🗑</button>`;
         timeText.textContent = time;
       } else if (msg.username === "SYSTEM") {
         wrapper.classList.add("self-center", "text-center");
@@ -230,7 +237,16 @@
       input.value = "";
     }
 
+    function deleteMessage(id) {
+      fetch(`/messages/${id}`, { method: 'DELETE' })
+        .then(res => {
+          if (!res.ok) throw new Error("Delete failed");
+        })
+        .catch(err => console.error(err));
+    }
+
     showWelcome();
   </script>
 </body>
 </html>
+```
