@@ -28,8 +28,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         messageRepository.findAll().forEach(msg -> {
             try {
                 session.sendMessage(new TextMessage(
-                        String.format("{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
-                                msg.getUsername(), msg.getContent(), msg.getTimestamp())
+                        String.format("{\"type\":\"message\",\"id\":%d,\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
+                                msg.getId(), msg.getUsername(), msg.getContent(), msg.getTimestamp())
                 ));
             } catch (Exception e) {
                 e.printStackTrace();
@@ -41,7 +41,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
         String payload = message.getPayload();
 
-        // Parse simple JSON
+        // Parse simple JSON (basic parsing)
         String username = payload.split("\"username\":\"")[1].split("\"")[0];
         String content = payload.split("\"content\":\"")[1].split("\"")[0];
 
@@ -51,11 +51,25 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         msg.setTimestamp(Instant.now());
         messageRepository.save(msg);
 
-        String broadcast = String.format("{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
-                msg.getUsername(), msg.getContent(), msg.getTimestamp());
+        String broadcast = String.format("{\"type\":\"message\",\"id\":%d,\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
+                msg.getId(), msg.getUsername(), msg.getContent(), msg.getTimestamp());
 
         for (WebSocketSession s : sessions) {
             if (s.isOpen()) s.sendMessage(new TextMessage(broadcast));
+        }
+    }
+
+    // 🔹 New method for delete broadcast
+    public void broadcastDelete(Long messageId) {
+        String deleteEvent = String.format("{\"type\":\"delete\",\"id\":%d}", messageId);
+        for (WebSocketSession s : sessions) {
+            if (s.isOpen()) {
+                try {
+                    s.sendMessage(new TextMessage(deleteEvent));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
         }
     }
 }
