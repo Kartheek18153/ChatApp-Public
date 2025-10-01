@@ -1,82 +1,94 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Clario</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/sockjs-client@1.6.1/dist/sockjs.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/stompjs@2.3.3/lib/stomp.min.js"></script>
+  <meta charset="UTF-8">
+  <title>Chat App</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; margin-bottom: 10px; }
+    .msg { margin: 5px 0; }
+    .own { color: blue; }
+    .other { color: green; }
+    .delete { cursor: pointer; color: red; margin-left: 10px; }
+  </style>
 </head>
-<body class="bg-gray-100">
+<body>
+  <h2>Chat Application</h2>
 
-<div class="max-w-md mx-auto mt-10 p-6 bg-white rounded shadow">
+  <div id="auth">
+    <input id="username" placeholder="Username">
+    <input id="password" type="password" placeholder="Password">
+    <button onclick="register()">Register</button>
+    <button onclick="login()">Login</button>
+    <button onclick="logout()">Logout</button>
+  </div>
 
-<h2 class="text-xl font-bold mb-4">Welcome, <span id="userDisplay"></span></h2>
+  <div id="chat"></div>
+  <input id="messageInput" placeholder="Type message...">
+  <button onclick="sendMessage()">Send</button>
 
-<div id="messages" class="h-64 overflow-y-auto border p-2 mb-4"></div>
+  <script>
+    let ws, currentUser = null;
 
-<input type="text" id="messageInput" class="border p-2 w-3/4" placeholder="Type a message...">
-<button onclick="sendMessage()" class="bg-green-500 text-white px-4 py-2 rounded">Send</button>
+    function connectWS() {
+      ws = new WebSocket("ws://" + window.location.host + "/chat");
+      ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        const div = document.createElement("div");
+        div.className = "msg " + (msg.username === currentUser ? "own" : "other");
+        div.textContent = msg.username + ": " + msg.content;
 
-</div>
-
-<script>
-let stompClient;
-let myUsername = "";
-
-function login(username){
-    myUsername=username;
-    document.getElementById("userDisplay").innerText = myUsername;
-    startChat();
-}
-
-function startChat(){
-    const socket = new SockJS('/ws');
-    stompClient = Stomp.over(socket);
-    stompClient.connect({}, frame => {
-        stompClient.subscribe('/topic/messages', msg => {
-            const data = JSON.parse(msg.body);
-            if(data.type==="message") appendMessage(data);
-            if(data.type==="delete") deleteMessageUI(data.id);
-        });
-    });
-}
-
-function appendMessage(msg){
-    const messagesDiv=document.getElementById("messages");
-    const wrapper=document.createElement("div"); wrapper.id="msg-"+msg.id; wrapper.className="mb-2";
-    const bubble=document.createElement("div"); bubble.className="p-2 rounded shadow flex justify-between";
-
-    if(msg.username===myUsername){
-        bubble.classList.add("bg-green-500","text-white");
-        bubble.innerHTML=`You: ${msg.content} <button onclick="deleteMessage(${msg.id})" class="ml-2 bg-red-500 px-2 rounded text-xs">🗑</button>`;
-    } else{
-        bubble.classList.add("bg-gray-300","text-black");
-        bubble.textContent=`${msg.username}: ${msg.content}`;
+        if (msg.username === currentUser) {
+          const del = document.createElement("span");
+          del.textContent = " [Delete]";
+          del.className = "delete";
+          del.onclick = () => deleteMessage(msg.id, div);
+          div.appendChild(del);
+        }
+        document.getElementById("chat").appendChild(div);
+      };
     }
 
-    wrapper.appendChild(bubble);
-    messagesDiv.appendChild(wrapper);
-    messagesDiv.scrollTop = messagesDiv.scrollHeight;
-}
-
-function sendMessage(){
-    const input=document.getElementById("messageInput");
-    if(!input.value.trim()) return;
-    stompClient.send("/app/sendMessage", {}, JSON.stringify({username: myUsername, content: input.value}));
-    input.value="";
-}
-
-function deleteMessage(id){
-    fetch(`/messages/${id}`, {method:"DELETE"});
-}
-
-function deleteMessageUI(id){
-    const elem=document.getElementById("msg-"+id);
-    if(elem){
-        elem.innerHTML="<i class='text-gray-500 italic'>This message was deleted</i>";
+    async function register() {
+      let res = await fetch("/auth/register", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({username: username.value, password: password.value})
+      });
+      alert(await res.text());
     }
-}
-</script>
+
+    async function login() {
+      let res = await fetch("/auth/login", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({username: username.value, password: password.value})
+      });
+      let text = await res.text();
+      if (text.includes("successful")) {
+        currentUser = username.value;
+        connectWS();
+      }
+      alert(text);
+    }
+
+    async function logout() {
+      currentUser = null;
+      ws && ws.close();
+      alert("Logged out");
+    }
+
+    function sendMessage() {
+      if (ws && currentUser) {
+        ws.send(JSON.stringify({username: currentUser, content: messageInput.value}));
+        messageInput.value = "";
+      }
+    }
+
+    async function deleteMessage(id, div) {
+      await fetch("/messages/" + id, {method: "DELETE"});
+      div.remove();
+    }
+  </script>
 </body>
 </html>
