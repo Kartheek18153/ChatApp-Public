@@ -2,31 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Chat App</title>
+  <title>CLARIO Chat</title>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 min-h-screen font-sans">
 
   <!-- Navbar -->
-  <nav class="flex justify-between items-center px-8 py-4 bg-white/80 backdrop-blur-md shadow-md">
-    <div class="text-2xl font-extrabold text-indigo-600">ChatApp</div>
-    <div class="space-x-4">
+  <nav id="navbar" class="flex justify-between items-center px-8 py-4 bg-white/80 backdrop-blur-md shadow-md">
+    <div id="logo" class="text-2xl font-extrabold text-indigo-600">ChatApp</div>
+    <div id="navButtons" class="space-x-4">
       <button onclick="showLogin()" class="px-4 py-2 rounded-lg text-indigo-600 font-medium hover:bg-indigo-100 transition">Login</button>
       <button onclick="showRegister()" class="px-4 py-2 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition">Register</button>
     </div>
   </nav>
 
   <!-- Container -->
-  <div class="flex items-center justify-center px-4 py-12">
+  <div id="mainContainer" class="flex items-center justify-center px-4 py-12">
 
     <!-- Card -->
-    <div class="bg-white shadow-2xl rounded-xl w-full max-w-md p-8">
+    <div id="card" class="bg-white shadow-2xl rounded-xl w-full max-w-md p-8">
 
       <!-- Welcome Page -->
       <div id="welcomePage" class="text-center space-y-4">
         <h1 class="text-4xl font-extrabold text-indigo-600">Welcome to ChatApp</h1>
         <p class="text-gray-600">Real-time Messaging Made Simple</p>
-        <button onclick="showLogin()" class="mt-4 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Get Started</button>
+        <button onclick="startApp()" class="mt-4 px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition">Get Started</button>
       </div>
 
       <!-- Login Page -->
@@ -78,10 +78,29 @@
     let ws;
     let myUsername = "";
 
+    function startApp() {
+      // Change logo to CLARIO
+      document.getElementById("logo").innerText = "CLARIO";
+      // Hide nav buttons
+      document.getElementById("navButtons").classList.add("hidden");
+      // Hide all pages
+      hideAll();
+      // Show login by default
+      document.getElementById("loginPage").classList.remove("hidden");
+      // Expand chat box full screen (later when messaging starts)
+      document.getElementById("card").classList.remove("max-w-md", "p-8");
+      document.getElementById("card").classList.add("w-full", "h-[90vh]", "p-4");
+    }
+
     function showWelcome() {
       hideAll();
       document.getElementById("welcomePage").classList.remove("hidden");
+      document.getElementById("logo").innerText = "ChatApp"; // Reset logo
+      document.getElementById("navButtons").classList.remove("hidden"); // Show buttons back
+      document.getElementById("card").classList.add("max-w-md", "p-8");
+      document.getElementById("card").classList.remove("w-full", "h-[90vh]");
     }
+
     function showLogin() {
       hideAll();
       document.getElementById("loginPage").classList.remove("hidden");
@@ -93,6 +112,9 @@
     function showMessaging() {
       hideAll();
       document.getElementById("messagingPage").classList.remove("hidden");
+      // Make chat box full screen wide
+      document.getElementById("card").classList.add("w-full", "h-[90vh]");
+      document.getElementById("card").classList.remove("max-w-md", "p-8");
     }
     function hideAll() {
       ["welcomePage","loginPage","registerPage","messagingPage"].forEach(id => 
