@@ -2,139 +2,281 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CLARIO</title>
+  <title>CLARIO Chat</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Background bubbles */
+    .bubble {
+      position: absolute;
+      bottom: -100px;
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 50%;
+      animation: rise 20s infinite ease-in;
+    }
+    @keyframes rise {
+      0% { transform: translateY(0) scale(1); opacity: 1; }
+      100% { transform: translateY(-120vh) scale(0.5); opacity: 0; }
+    }
+
+    /* Message animations */
+    .message-enter {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: messageFade 0.5s forwards;
+    }
+    @keyframes messageFade {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Logo and section transitions */
+    .fade-slide-up {
+      opacity: 0;
+      transform: translateY(20px);
+      animation: fadeSlide 0.5s forwards;
+    }
+    @keyframes fadeSlide {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .fade-out {
+      animation: fadeOut 0.5s forwards;
+    }
+    @keyframes fadeOut {
+      to {
+        opacity: 0;
+        transform: translateY(-50px);
+      }
+    }
+
+    .scale-up {
+      animation: scaleUp 0.5s forwards;
+    }
+    @keyframes scaleUp {
+      to {
+        transform: scale(1.2);
+        opacity: 1;
+      }
+    }
+  </style>
 </head>
-<body class="bg-gradient-to-r from-blue-100 via-purple-100 to-pink-100 min-h-screen flex flex-col">
+<body class="relative bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 min-h-screen font-sans overflow-hidden">
+
+  <!-- Animated Bubbles -->
+  <div id="bubbles"></div>
 
   <!-- Header -->
-  <header class="flex justify-between items-center p-4 bg-white shadow">
-    <h1 id="logo" class="text-2xl font-bold text-indigo-600">ChatApp</h1>
+  <header class="flex justify-between items-center px-6 py-4 bg-white shadow relative z-10 transition-all duration-500">
+    <div id="appLogo" class="text-2xl font-extrabold text-indigo-600 tracking-wide transition-all duration-500">ChatApp</div>
     <div id="authButtons" class="space-x-3">
-      <button onclick="showLogin()" class="px-4 py-2 rounded bg-indigo-500 text-white hover:bg-indigo-600">Login</button>
-      <button onclick="showRegister()" class="px-4 py-2 rounded bg-purple-500 text-white hover:bg-purple-600">Register</button>
+      <button onclick="showLogin()" class="px-4 py-2 bg-indigo-500 text-white rounded hover:opacity-90">Login</button>
+      <button onclick="showRegister()" class="px-4 py-2 bg-green-500 text-white rounded hover:opacity-90">Register</button>
     </div>
   </header>
 
-  <!-- Welcome Page -->
-  <section id="welcome" class="flex-1 flex flex-col items-center justify-center text-center p-8">
-    <h2 class="text-4xl font-bold mb-4">Welcome to ChatApp</h2>
-    <p class="text-lg text-gray-600 mb-6">Your modern chat experience</p>
-    <button onclick="startChat()" class="px-6 py-3 rounded-lg bg-indigo-600 text-white text-lg hover:bg-indigo-700">Get Started</button>
+  <!-- Welcome Section -->
+  <section id="welcomeSection" class="flex flex-col items-center justify-center text-center py-20 px-6 relative z-10 transition-all duration-500">
+    <h1 id="welcomeTitle" class="text-5xl font-extrabold text-white drop-shadow-lg mb-6 transition-all duration-500">Welcome to ChatApp</h1>
+    <p class="text-lg text-gray-200 max-w-xl mb-10 transition-all duration-500">Experience fast and secure real-time messaging like never before.</p>
+    <button id="getStartedBtn" onclick="startApp()" class="bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-8 py-3 rounded-full text-lg font-semibold shadow hover:opacity-90 transition-all duration-500">
+      Get Started
+    </button>
   </section>
 
-  <!-- Login Form -->
-  <section id="login" class="hidden flex-1 flex items-center justify-center">
-    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-sm">
-      <h2 class="text-xl font-bold mb-4">Login</h2>
-      <input type="text" placeholder="Username" class="w-full mb-3 border rounded p-2" />
-      <input type="password" placeholder="Password" class="w-full mb-3 border rounded p-2" />
-      <button onclick="startChat()" class="w-full bg-indigo-600 text-white p-2 rounded hover:bg-indigo-700">Login</button>
-    </div>
-  </section>
-
-  <!-- Register Form -->
-  <section id="register" class="hidden flex-1 flex items-center justify-center">
-    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-sm">
-      <h2 class="text-xl font-bold mb-4">Register</h2>
-      <input type="text" placeholder="Username" class="w-full mb-3 border rounded p-2" />
-      <input type="password" placeholder="Password" class="w-full mb-3 border rounded p-2" />
-      <button onclick="startChat()" class="w-full bg-purple-600 text-white p-2 rounded hover:bg-purple-700">Register</button>
-    </div>
-  </section>
-
-  <!-- Chat Page -->
-  <section id="chat" class="hidden flex-1 flex bg-white">
-    <!-- Sidebar -->
-    <aside class="w-1/3 border-r flex flex-col">
-      <!-- User Profile -->
-      <div class="p-4 border-b flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold">U</div>
-        <div>
-          <p class="font-bold">Username</p>
-          <p class="text-sm text-gray-500">Online</p>
+  <!-- Main Container -->
+  <div id="mainContainer" class="hidden flex items-center justify-center px-4 pb-10 relative z-10 transition-all duration-500">
+    <div class="bg-white shadow-2xl rounded-xl w-full max-w-md p-8 fade-slide-up" id="authContainer">
+      <!-- Login Page -->
+      <div id="loginPage">
+        <h2 class="text-2xl font-bold mb-4 text-gray-700">Login</h2>
+        <div class="space-y-3">
+          <input id="loginUsername" type="text" placeholder="Username" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
+          <input id="loginPassword" type="password" placeholder="Password" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
+          <button onclick="login()" class="bg-gradient-to-r from-green-500 to-green-600 hover:opacity-90 text-white px-4 py-2 rounded w-full transition">Login</button>
         </div>
-      </div>
-      <!-- Chat List -->
-      <div class="flex-1 overflow-y-auto">
-        <div class="p-4 hover:bg-gray-100 cursor-pointer border-b">General Chat</div>
-        <div class="p-4 hover:bg-gray-100 cursor-pointer border-b">Friends</div>
-        <div class="p-4 hover:bg-gray-100 cursor-pointer border-b">Work</div>
-      </div>
-    </aside>
-
-    <!-- Main Chat Area -->
-    <main class="flex-1 flex flex-col">
-      <!-- Chat Header -->
-      <div class="p-4 border-b flex justify-between items-center">
-        <h2 class="text-lg font-bold text-indigo-600">CLARIO</h2>
-        <button onclick="logout()" class="text-sm bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600">Logout</button>
+        <p class="text-sm mt-3">Don’t have an account? 
+          <a href="#" onclick="showRegister()" class="text-blue-500 hover:underline">Register</a>
+        </p>
+        <p id="loginMsg" class="text-sm text-red-500 mt-2"></p>
       </div>
 
-      <!-- Messages -->
-      <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
-        <!-- Messages will appear here -->
+      <!-- Register Page -->
+      <div id="registerPage" class="hidden">
+        <h2 class="text-2xl font-bold mb-4 text-gray-700">Register</h2>
+        <div class="space-y-3">
+          <input id="registerUsername" type="text" placeholder="Username" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
+          <input id="registerPassword" type="password" placeholder="Password" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
+          <input id="registerConfirm" type="password" placeholder="Confirm Password" class="border p-2 rounded w-full focus:ring focus:ring-indigo-300">
+          <button onclick="register()" class="bg-gradient-to-r from-blue-500 to-blue-600 hover:opacity-90 text-white px-4 py-2 rounded w-full transition">Register</button>
+        </div>
+        <p class="text-sm mt-3">Already have an account? 
+          <a href="#" onclick="showLogin()" class="text-blue-500 hover:underline">Login</a>
+        </p>
+        <p id="registerMsg" class="text-sm text-red-500 mt-2"></p>
+      </div>
+    </div>
+
+    <!-- Messaging Page -->
+    <div id="messagingPage" class="hidden flex flex-col h-[600px] w-full max-w-5xl bg-white shadow-2xl rounded-xl p-6 fade-slide-up">
+      <div class="flex justify-between items-center mb-3">
+        <h2 class="text-xl font-bold text-gray-700">Welcome, <span id="userDisplay"></span></h2>
+        <button onclick="logout()" class="text-sm bg-red-500 text-white px-3 py-1 rounded hover:opacity-90 transition">Logout</button>
       </div>
 
-      <!-- Message Input -->
-      <div class="p-3 border-t flex">
-        <input id="messageInput" type="text" placeholder="Type a message..." 
-          class="flex-1 border rounded-l-lg p-3 focus:ring focus:ring-indigo-300 focus:outline-none" />
-        <button onclick="sendMessage()" 
-          class="bg-indigo-600 text-white px-4 py-3 rounded-r-lg hover:bg-indigo-700">Send</button>
+      <div id="messages" class="border p-3 flex-1 overflow-y-auto bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-lg mb-4 flex flex-col shadow-inner space-y-2"></div>
+
+      <div class="flex">
+        <input id="messageInput" type="text" placeholder="Type your message..." class="border p-2 rounded-l-lg w-full focus:ring focus:ring-indigo-300">
+        <button onclick="sendMessage()" class="bg-gradient-to-r from-green-500 to-green-600 hover:opacity-90 text-white px-4 py-2 rounded-r-lg transition">Send</button>
       </div>
-    </main>
-  </section>
+    </div>
+  </div>
 
   <script>
+    let ws;
+    let myUsername = "";
+
+    // --- Background bubbles ---
+    function createBubbles() {
+      const bubbleContainer = document.getElementById("bubbles");
+      for (let i = 0; i < 25; i++) {
+        const bubble = document.createElement("div");
+        bubble.classList.add("bubble");
+        const size = Math.random() * 60 + 20;
+        bubble.style.width = `${size}px`;
+        bubble.style.height = `${size}px`;
+        bubble.style.left = `${Math.random() * 100}%`;
+        bubble.style.animationDuration = `${10 + Math.random() * 15}s`;
+        bubbleContainer.appendChild(bubble);
+      }
+    }
+    createBubbles();
+
+    // --- UI Transitions ---
+    function startApp() {
+      // Animate welcome section out
+      document.getElementById("welcomeSection").classList.add("fade-out");
+      // Animate logo scale
+      const logo = document.getElementById("appLogo");
+      logo.classList.add("scale-up");
+      logo.innerText = "CLARIO";
+
+      // Show auth container after delay
+      setTimeout(() => {
+        document.getElementById("welcomeSection").classList.add("hidden");
+        document.getElementById("mainContainer").classList.remove("hidden");
+        document.getElementById("authButtons").classList.add("hidden");
+        document.getElementById("authContainer").classList.add("fade-slide-up");
+      }, 500);
+    }
+
     function showLogin() {
-      document.getElementById("welcome").classList.add("hidden");
-      document.getElementById("login").classList.remove("hidden");
-      document.getElementById("register").classList.add("hidden");
-      document.getElementById("chat").classList.add("hidden");
+      document.getElementById("loginPage").classList.remove("hidden");
+      document.getElementById("registerPage").classList.add("hidden");
     }
-
     function showRegister() {
-      document.getElementById("welcome").classList.add("hidden");
-      document.getElementById("register").classList.remove("hidden");
-      document.getElementById("login").classList.add("hidden");
-      document.getElementById("chat").classList.add("hidden");
+      document.getElementById("loginPage").classList.add("hidden");
+      document.getElementById("registerPage").classList.remove("hidden");
     }
-
-    function startChat() {
-      document.getElementById("welcome").classList.add("hidden");
-      document.getElementById("login").classList.add("hidden");
-      document.getElementById("register").classList.add("hidden");
-      document.getElementById("chat").classList.remove("hidden");
-
-      // Update header
-      document.getElementById("authButtons").classList.add("hidden");
-      document.getElementById("logo").textContent = "CLARIO";
+    function showMessaging() {
+      document.getElementById("authContainer").classList.add("hidden");
+      document.getElementById("messagingPage").classList.remove("hidden");
     }
-
     function logout() {
-      document.getElementById("chat").classList.add("hidden");
-      document.getElementById("welcome").classList.remove("hidden");
-      document.getElementById("authButtons").classList.remove("hidden");
-      document.getElementById("logo").textContent = "ChatApp";
+      ws && ws.close();
+      document.getElementById("messagingPage").classList.add("hidden");
+      document.getElementById("authContainer").classList.remove("hidden");
+      myUsername = "";
+      document.getElementById("userDisplay").innerText = "";
+    }
+
+    // --- Auth ---
+    async function register() {
+      const username = document.getElementById("registerUsername").value.trim();
+      const password = document.getElementById("registerPassword").value.trim();
+      const confirm = document.getElementById("registerConfirm").value.trim();
+      if (password !== confirm) {
+        document.getElementById("registerMsg").innerText = "Passwords do not match!";
+        return;
+      }
+      const response = await fetch('/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const message = await response.text();
+      document.getElementById("registerMsg").innerText = message;
+      if (message.includes("successful")) showLogin();
+    }
+
+    async function login() {
+      const username = document.getElementById("loginUsername").value.trim();
+      const password = document.getElementById("loginPassword").value.trim();
+      const response = await fetch('/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const message = await response.text();
+      document.getElementById("loginMsg").innerText = message;
+      if (message.includes("successful")) {
+        myUsername = username;
+        document.getElementById("userDisplay").innerText = myUsername;
+        showMessaging();
+        startChat();
+      }
+    }
+
+    // --- WebSocket Chat ---
+    function startChat() {
+      const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+      ws = new WebSocket(`${protocol}://${window.location.host}/chat`);
+      ws.onopen = () => console.log("Connected to WebSocket server");
+      ws.onmessage = event => appendMessage(JSON.parse(event.data));
+      ws.onclose = () => console.log("Disconnected from server");
+    }
+
+    function appendMessage(msg) {
+      const messagesDiv = document.getElementById("messages");
+      const wrapper = document.createElement("div");
+      wrapper.className = "mb-2 max-w-xs message-enter";
+      const bubble = document.createElement("div");
+      const timeText = document.createElement("div");
+      timeText.className = "text-[10px] text-gray-500 mt-1";
+      const time = new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+      if (msg.username === myUsername) {
+        wrapper.classList.add("self-end", "text-right");
+        bubble.className = "bg-green-500 text-white px-4 py-2 rounded-2xl shadow";
+        bubble.textContent = `You: ${msg.content}`;
+      } else if (msg.username === "SYSTEM") {
+        wrapper.classList.add("self-center", "text-center");
+        bubble.className = "bg-yellow-200 text-black px-4 py-2 rounded-2xl font-bold shadow";
+        bubble.textContent = msg.content;
+      } else {
+        wrapper.classList.add("self-start", "text-left");
+        bubble.className = "bg-gray-300 text-black px-4 py-2 rounded-2xl shadow";
+        bubble.textContent = `${msg.username}: ${msg.content}`;
+      }
+
+      timeText.textContent = time;
+      wrapper.appendChild(bubble);
+      wrapper.appendChild(timeText);
+      messagesDiv.appendChild(wrapper);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
     function sendMessage() {
       const input = document.getElementById("messageInput");
       const text = input.value.trim();
-      if (text === "") return;
-
-      const msgDiv = document.createElement("div");
-      msgDiv.className = "bg-indigo-100 p-2 rounded-lg max-w-md self-end";
-      msgDiv.textContent = text;
-
-      document.getElementById("messages").appendChild(msgDiv);
+      if (!text || !ws) return;
+      ws.send(JSON.stringify({ username: myUsername, content: text, timestamp: new Date() }));
       input.value = "";
-
-      // Auto scroll
-      const messages = document.getElementById("messages");
-      messages.scrollTop = messages.scrollHeight;
     }
   </script>
 </body>
