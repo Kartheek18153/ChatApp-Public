@@ -58,39 +58,15 @@
       </div>
 
       <!-- Messaging Page -->
-      <div id="messagingPage" class="hidden h-[90vh] w-full">
-        <div class="flex h-full">
-
-          <!-- Sidebar -->
-          <div class="w-64 bg-indigo-700 text-white flex flex-col p-4 rounded-l-xl shadow-lg">
-            <div class="text-2xl font-extrabold mb-6">CLARIO</div>
-            <div class="flex-1">
-              <h3 class="font-semibold mb-2">Online Users</h3>
-              <ul id="onlineUsers" class="space-y-1 text-sm">
-                <li class="text-gray-200">No users yet</li>
-              </ul>
-            </div>
-            <button onclick="showWelcome()" class="bg-red-500 mt-6 px-3 py-2 rounded hover:bg-red-600 transition text-sm">Logout</button>
-          </div>
-
-          <!-- Chat Area -->
-          <div class="flex-1 flex flex-col bg-gray-50 rounded-r-xl shadow-lg">
-            <div class="flex justify-between items-center p-4 border-b bg-white rounded-tr-xl">
-              <h2 class="text-xl font-bold text-gray-700">Welcome, <span id="userDisplay"></span></h2>
-            </div>
-
-            <div id="messages" class="flex-1 overflow-y-auto p-4 bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 flex flex-col"></div>
-
-            <div class="p-4 border-t bg-white rounded-br-xl">
-              <div class="flex">
-                <input id="messageInput" type="text" placeholder="Type your message..." 
-                  class="border p-2 rounded-l-lg w-full focus:ring focus:ring-indigo-300">
-                <button onclick="sendMessage()" 
-                  class="bg-gradient-to-r from-green-500 to-green-600 hover:opacity-90 text-white px-4 py-2 rounded-r-lg transition">Send</button>
-              </div>
-            </div>
-          </div>
-
+      <div id="messagingPage" class="hidden flex flex-col h-[500px]">
+        <div class="flex justify-between items-center mb-3">
+          <h2 class="text-xl font-bold text-gray-700">Welcome, <span id="userDisplay"></span></h2>
+          <button onclick="showWelcome()" class="text-sm bg-red-500 text-white px-3 py-1 rounded hover:opacity-90 transition">Logout</button>
+        </div>
+        <div id="messages" class="border p-3 flex-1 overflow-y-auto bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-lg mb-4 flex flex-col shadow-inner"></div>
+        <div class="flex">
+          <input id="messageInput" type="text" placeholder="Type your message..." class="border p-2 rounded-l-lg w-full focus:ring focus:ring-indigo-300">
+          <button onclick="sendMessage()" class="bg-gradient-to-r from-green-500 to-green-600 hover:opacity-90 text-white px-4 py-2 rounded-r-lg transition">Send</button>
         </div>
       </div>
 
@@ -102,10 +78,15 @@
     let myUsername = "";
 
     function startApp() {
+      // Change logo to CLARIO
       document.getElementById("logo").innerText = "CLARIO";
+      // Hide nav buttons
       document.getElementById("navButtons").classList.add("hidden");
+      // Hide all pages
       hideAll();
+      // Show login page first
       document.getElementById("loginPage").classList.remove("hidden");
+      // Keep card small until messaging starts
       document.getElementById("card").classList.add("max-w-md", "p-8");
       document.getElementById("card").classList.remove("w-full", "h-[90vh]");
     }
@@ -113,8 +94,8 @@
     function showWelcome() {
       hideAll();
       document.getElementById("welcomePage").classList.remove("hidden");
-      document.getElementById("logo").innerText = "ChatApp"; 
-      document.getElementById("navButtons").classList.remove("hidden"); 
+      document.getElementById("logo").innerText = "ChatApp"; // Reset logo
+      document.getElementById("navButtons").classList.remove("hidden"); // Show buttons back
       document.getElementById("card").classList.add("max-w-md", "p-8");
       document.getElementById("card").classList.remove("w-full", "h-[90vh]");
     }
@@ -122,15 +103,20 @@
     function showLogin() {
       hideAll();
       document.getElementById("loginPage").classList.remove("hidden");
+      document.getElementById("card").classList.add("max-w-md", "p-8");
+      document.getElementById("card").classList.remove("w-full", "h-[90vh]");
     }
     function showRegister() {
       hideAll();
       document.getElementById("registerPage").classList.remove("hidden");
+      document.getElementById("card").classList.add("max-w-md", "p-8");
+      document.getElementById("card").classList.remove("w-full", "h-[90vh]");
     }
     function showMessaging() {
       hideAll();
       document.getElementById("messagingPage").classList.remove("hidden");
-      document.getElementById("card").classList.add("w-full", "h-[90vh]", "p-0");
+      // Expand only messaging full
+      document.getElementById("card").classList.add("w-full", "h-[90vh]", "p-4");
       document.getElementById("card").classList.remove("max-w-md", "p-8");
     }
     function hideAll() {
