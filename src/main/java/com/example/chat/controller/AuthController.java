@@ -1,33 +1,39 @@
+
 package com.example.chat.controller;
 
 import com.example.chat.model.User;
 import com.example.chat.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
-    private final UserRepository repo;
 
-    public AuthController(UserRepository repo) {
-        this.repo = repo;
-    }
+    @Autowired
+    private UserRepository userRepository;
 
     @PostMapping("/register")
     public String register(@RequestBody User user) {
-        if (repo.findByUsername(user.getUsername()) != null) {
-            return "User already exists!";
+        if (user.getUsername() == null || user.getPassword() == null) {
+            return "Username and password are required";
         }
-        repo.save(user);
-        return "Registration successful";
+        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+            return "Username already exists!";
+        }
+        userRepository.save(user);
+        return "Registration successful!";
     }
 
     @PostMapping("/login")
     public String login(@RequestBody User user) {
-        User u = repo.findByUsername(user.getUsername());
-        if (u != null && u.getPassword().equals(user.getPassword())) {
-            return "Login successful";
+        if (user.getUsername() == null || user.getPassword() == null) {
+            return "Username and password are required";
         }
-        return "Invalid credentials";
+        return userRepository.findByUsername(user.getUsername())
+                .map(u -> u.getPassword().equals(user.getPassword())
+                        ? "Login successful!"
+                        : "Invalid password!")
+                .orElse("Invalid username!");
     }
 }
