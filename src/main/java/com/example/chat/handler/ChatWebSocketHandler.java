@@ -15,9 +15,23 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     private final MessageRepository messageRepository;
     private final List<WebSocketSession> sessions = new ArrayList<>();
 
-    // List of banned words (expandable)
+    // List of banned words (you can expand this anytime)
     private static final Set<String> BAD_WORDS = Set.of(
-            "shit", "dumbass", "bitch", "fuck", "asshole", "bastard", "idiot"
+        "arsehole", "asshole", "a**hole", "a$$hole",
+        "bastard", "bitch", "b*tch", "b!tch",
+        "bloody", "bollocks", "boobs", "bugger",
+        "cheese and crackers",
+        "cock", "cocksucker", "crap", "crappity",
+        "cunt", "damn", "dick", "dumb ass", "dumbass",
+        "f***", "f u c k", "fuck", "f*ck", "fuk",
+        "hell", "hoe", "how to use shit",
+        "idiot", "jerk", "mf", "mfer", "mofo", "moron",
+        "motherfucker", "nigger", "nigga",
+        "piss", "prick", "pussy",
+        "retard", "rubbish",
+        "sh1t", "shag", "shit", "s***", "slut",
+        "son of a bitch", "stupid", "tits", "twat",
+        "wanker", "whore"
     );
 
     public ChatWebSocketHandler(MessageRepository messageRepository) {
