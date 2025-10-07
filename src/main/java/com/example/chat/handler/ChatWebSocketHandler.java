@@ -78,8 +78,8 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         // Check for bad words after broadcasting the user message
         if (containsBadWords(content)) {
             String warning = String.format(
-                    "{\"username\":\"SYSTEM\",\"content\":\"⚠️ Someone used inappropriate language!\",\"timestamp\":\"%s\"}",
-                    Instant.now()
+                    "{\"username\":\"SYSTEM\",\"content\":\"⚠️ %s used inappropriate language!\",\"timestamp\":\"%s\"}",
+                    username, Instant.now()
             );
             broadcast(warning);
         }
