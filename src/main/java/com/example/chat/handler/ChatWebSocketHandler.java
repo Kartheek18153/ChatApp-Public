@@ -2,6 +2,7 @@ package com.example.chat.handler;
 
 import com.example.chat.model.Message;
 import com.example.chat.repository.MessageRepository;
+import com.example.chat.service.UserPunishmentService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
@@ -13,34 +14,29 @@ import java.util.*;
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private final MessageRepository messageRepository;
+    private final UserPunishmentService punishmentService;
     private final List<WebSocketSession> sessions = new ArrayList<>();
 
-    // List of banned words (you can expand this anytime)
+    // List of banned words
     private static final Set<String> BAD_WORDS = Set.of(
-        "arsehole", "asshole", "a**hole", "a$$hole",
-        "bastard", "bitch", "b*tch", "b!tch",
-        "bloody", "bollocks", "boobs", "bugger",
-        "cheese and crackers",
-        "cock", "cocksucker", "crap", "crappity",
-        "cunt", "damn", "dick", "dumb ass", "dumbass",
-        "f***", "f u c k", "fuck", "f*ck", "fuk",
-        "hell", "hoe", "how to use shit",
-        "idiot", "jerk", "mf", "mfer", "mofo", "moron",
-        "motherfucker", "nigger", "nigga",
-        "piss", "prick", "pussy",
-        "retard", "rubbish",
-        "sh1t", "shag", "shit", "s***", "slut",
-        "son of a bitch", "stupid", "tits", "twat",
-        "wanker", "whore"
+            "arsehole","asshole","a**hole","a$$hole","bastard","bitch","b*tch","b!tch",
+            "bloody","bollocks","boobs","bugger","cheese and crackers","cock","cocksucker",
+            "crap","crappity","cunt","damn","dick","dumb ass","dumbass","f***","f u c k",
+            "fuck","f*ck","fuk","hell","hoe","how to use shit","idiot","jerk","mf","mfer",
+            "mofo","moron","motherfucker","nigger","nigga","piss","prick","pussy","retard",
+            "rubbish","sh1t","shag","shit","s***","slut","son of a bitch","stupid","tits",
+            "twat","wanker","whore"
     );
 
-    public ChatWebSocketHandler(MessageRepository messageRepository) {
+    public ChatWebSocketHandler(MessageRepository messageRepository, UserPunishmentService punishmentService) {
         this.messageRepository = messageRepository;
+        this.punishmentService = punishmentService;
     }
 
     @Override
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         sessions.add(session);
+
         // Send existing chat history
         messageRepository.findAll().forEach(msg -> {
             try {
@@ -62,36 +58,42 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         String username = extractField(payload, "username");
         String content = extractField(payload, "content");
 
-        // Save and broadcast the user message
+        // If user is muted
+        if (punishmentService.isUserMuted(username)) {
+            sendPrivateMessage(session, "🚫 You are muted. Wait until your mute expires.");
+            return;
+        }
+
+        // Check for bad words
+        if (containsBadWords(content)) {
+            int strikes = punishmentService.addStrike(username); // add a strike
+
+            if (strikes >= 3) {
+                punishmentService.muteUser(username, 3); // 3-minute mute
+                broadcast(String.format("🔇 User %s has been muted for 3 minutes due to repeated violations.", username));
+            } else {
+                broadcast(String.format("⚠️ %s used inappropriate language! Strike %d/3.", username, strikes));
+            }
+            return; // don't save bad message
+        }
+
+        // Save and broadcast normal message
         Message msg = new Message();
         msg.setUsername(username);
         msg.setContent(content);
         msg.setTimestamp(Instant.now());
         messageRepository.save(msg);
 
-        String broadcastMsg = String.format(
-                "{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
-                msg.getUsername(), msg.getContent(), msg.getTimestamp()
-        );
+        String broadcastMsg = String.format("{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
+                msg.getUsername(), msg.getContent(), msg.getTimestamp());
         broadcast(broadcastMsg);
-
-        // Check for bad words after broadcasting the user message
-        if (containsBadWords(content)) {
-            String warning = String.format(
-                    "{\"username\":\"SYSTEM\",\"content\":\"⚠️ %s used inappropriate language!\",\"timestamp\":\"%s\"}",
-                    username, Instant.now()
-            );
-            broadcast(warning);
-        }
     }
 
     private boolean containsBadWords(String text) {
         if (text == null) return false;
         String lowerText = text.toLowerCase();
         for (String bad : BAD_WORDS) {
-            if (lowerText.contains(bad)) {
-                return true;
-            }
+            if (lowerText.contains(bad)) return true;
         }
         return false;
     }
@@ -103,6 +105,17 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
             } catch (Exception e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    private void sendPrivateMessage(WebSocketSession session, String message) {
+        try {
+            if (session.isOpen()) session.sendMessage(new TextMessage(
+                    String.format("{\"username\":\"SYSTEM\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
+                            message, Instant.now())
+            ));
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
