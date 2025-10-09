@@ -3,60 +3,56 @@ package com.example.chat.service;
 import com.example.chat.model.UserPunishment;
 import com.example.chat.repository.UserPunishmentRepository;
 import org.springframework.stereotype.Service;
+
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @Service
 public class UserPunishmentService {
 
     private final UserPunishmentRepository repository;
 
-    // Change these if you want to tweak behavior
-    private static final int MAX_STRIKES = 3;
-    private static final int MUTE_DURATION_SECONDS = 300; // 5 minutes
-
     public UserPunishmentService(UserPunishmentRepository repository) {
         this.repository = repository;
     }
 
-    public boolean isMuted(String username) {
-        UserPunishment punishment = getOrCreate(username);
-        Instant muteUntil = punishment.getMuteUntil();
+    // Adds a strike and returns total count
+    public int addStrike(String username) {
+        UserPunishment user = repository.findByUsername(username)
+                .orElseGet(() -> new UserPunishment(username));
 
-        if (muteUntil == null) return false;
+        // If the user is currently muted, reset strikes when unmuted
+        if (isUserMuted(username)) return user.getStrikes();
 
-        // If mute time expired, reset
-        if (Instant.now().isAfter(muteUntil)) {
-            punishment.setMuteUntil(null);
-            punishment.setStrikes(0);
-            repository.save(punishment);
-            return false;
-        }
-        return true;
+        user.setStrikes(user.getStrikes() + 1);
+        repository.save(user);
+        return user.getStrikes();
     }
 
-    public void addStrike(String username) {
-        UserPunishment punishment = getOrCreate(username);
-        punishment.setStrikes(punishment.getStrikes() + 1);
-
-        if (punishment.getStrikes() >= MAX_STRIKES) {
-            punishment.setMuteUntil(Instant.now().plusSeconds(MUTE_DURATION_SECONDS));
-        }
-
-        repository.save(punishment);
-    }
-
-    public int getStrikeCount(String username) {
-        return getOrCreate(username).getStrikes();
-    }
-
-    public long getMuteRemainingSeconds(String username) {
-        UserPunishment punishment = getOrCreate(username);
-        if (punishment.getMuteUntil() == null) return 0;
-        return Math.max(0, punishment.getMuteUntil().getEpochSecond() - Instant.now().getEpochSecond());
-    }
-
-    private UserPunishment getOrCreate(String username) {
+    // Check if user is muted
+    public boolean isUserMuted(String username) {
         return repository.findByUsername(username)
-                .orElseGet(() -> repository.save(new UserPunishment(username)));
+                .map(u -> u.getMuteUntil() != null && Instant.now().isBefore(u.getMuteUntil()))
+                .orElse(false);
+    }
+
+    // Mute user for given minutes
+    public void muteUser(String username, int minutes) {
+        UserPunishment user = repository.findByUsername(username)
+                .orElseGet(() -> new UserPunishment(username));
+
+        user.setMuteUntil(Instant.now().plus(minutes, ChronoUnit.MINUTES));
+        user.setStrikes(0); // reset strikes after mute
+        repository.save(user);
+    }
+
+    // Optional: get remaining mute time
+    public long getRemainingMuteSeconds(String username) {
+        return repository.findByUsername(username)
+                .filter(u -> u.getMuteUntil() != null)
+                .map(u -> Instant.now().isBefore(u.getMuteUntil())
+                        ? u.getMuteUntil().getEpochSecond() - Instant.now().getEpochSecond()
+                        : 0L)
+                .orElse(0L);
     }
 }
