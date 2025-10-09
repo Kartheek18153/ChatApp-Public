@@ -1,4 +1,3 @@
-
 package com.example.chat.controller;
 
 import com.example.chat.repository.MessageRepository;
@@ -17,4 +16,4 @@ public class MessageController {
     public void deleteMessage(@PathVariable Long id) {
         repo.deleteById(id);
     }
-}
+} 
