@@ -8,7 +8,7 @@ import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import java.io.IOException;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 
 @Component
@@ -20,7 +20,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
     // Store active sessions for broadcasting messages
     private final Map<String, WebSocketSession> activeSessions = new HashMap<>();
 
-    // Basic inappropriate word list (you can expand this)
+    // Basic inappropriate word list
     private final Set<String> bannedWords = new HashSet<>(Arrays.asList(
             "asshole", "bastard", "fuck", "piss", "bitch", "bollocks", "shit",
             "bloody", "bugger", "damn", "cock", "cunt", "wanker", "arsehole",
@@ -70,7 +70,7 @@ public class ChatWebSocketHandler extends TextWebSocketHandler {
         Message msg = new Message();
         msg.setUsername(username);
         msg.setContent(text);
-        msg.setTimestamp(LocalDateTime.now());
+        msg.setTimestamp(Instant.now()); // ✅ Matches Message.java
         messageRepository.save(msg);
 
         // Broadcast message
