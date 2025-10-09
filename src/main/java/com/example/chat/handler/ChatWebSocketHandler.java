@@ -2,115 +2,116 @@ package com.example.chat.handler;
 
 import com.example.chat.model.Message;
 import com.example.chat.repository.MessageRepository;
+import com.example.chat.service.UserPunishmentService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.*;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import java.time.Instant;
+import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Component
 public class ChatWebSocketHandler extends TextWebSocketHandler {
 
     private final MessageRepository messageRepository;
-    private final List<WebSocketSession> sessions = new ArrayList<>();
+    private final UserPunishmentService punishmentService;
 
-    // List of banned words (you can expand this anytime)
-    private static final Set<String> BAD_WORDS = Set.of(
-        "arsehole", "asshole", "a**hole", "a$$hole",
-        "bastard", "bitch", "b*tch", "b!tch",
-        "bloody", "bollocks", "boobs", "bugger",
-        "cheese and crackers",
-        "cock", "cocksucker", "crap", "crappity",
-        "cunt", "damn", "dick", "dumb ass", "dumbass",
-        "f***", "f u c k", "fuck", "f*ck", "fuk",
-        "hell", "hoe", "how to use shit",
-        "idiot", "jerk", "mf", "mfer", "mofo", "moron",
-        "motherfucker", "nigger", "nigga",
-        "piss", "prick", "pussy",
-        "retard", "rubbish",
-        "sh1t", "shag", "shit", "s***", "slut",
-        "son of a bitch", "stupid", "tits", "twat",
-        "wanker", "whore"
-    );
+    // Store active sessions for broadcasting messages
+    private final Map<String, WebSocketSession> activeSessions = new HashMap<>();
 
-    public ChatWebSocketHandler(MessageRepository messageRepository) {
+    // Basic inappropriate word list (you can expand this)
+    private final Set<String> bannedWords = new HashSet<>(Arrays.asList(
+            "asshole", "bastard", "fuck", "piss", "bitch", "bollocks", "shit",
+            "bloody", "bugger", "damn", "cock", "cunt", "wanker", "arsehole",
+            "cocksucker", "motherfucker", "crappity", "hell", "rubbish", "shag", "son of"
+    ));
+
+    public ChatWebSocketHandler(MessageRepository messageRepository,
+                                UserPunishmentService punishmentService) {
         this.messageRepository = messageRepository;
+        this.punishmentService = punishmentService;
     }
 
     @Override
-    public void afterConnectionEstablished(WebSocketSession session) throws Exception {
-        sessions.add(session);
-        // Send existing chat history
-        messageRepository.findAll().forEach(msg -> {
+    public void afterConnectionEstablished(WebSocketSession session) {
+        String username = getUsername(session);
+        activeSessions.put(username, session);
+        System.out.println("✅ " + username + " connected to chat.");
+        broadcast("🟢 " + username + " joined the chat.");
+    }
+
+    @Override
+    public void handleTextMessage(WebSocketSession session, TextMessage message) throws IOException {
+        String username = getUsername(session);
+        String text = message.getPayload().trim();
+
+        // Check if user is muted
+        if (punishmentService.isUserMuted(username)) {
+            sendPrivateMessage(session, "🚫 You are muted. Wait until your mute expires.");
+            return;
+        }
+
+        // Check for inappropriate content
+        if (containsBannedWord(text)) {
+            int strikes = punishmentService.addStrike(username);
+
+            if (strikes >= 3) {
+                punishmentService.muteUser(username, 3); // 🔥 MUTE FOR 3 MINUTES
+                sendPrivateMessage(session, "❌ You have been muted for 3 minutes due to repeated violations.");
+                broadcast("🔇 User " + username + " has been muted for 3 minutes due to inappropriate language.");
+            } else {
+                sendPrivateMessage(session, "⚠️ Inappropriate language detected. Strike " + strikes + "/3.");
+            }
+            return;
+        }
+
+        // Save valid message
+        Message msg = new Message();
+        msg.setUsername(username);
+        msg.setContent(text);
+        msg.setTimestamp(LocalDateTime.now());
+        messageRepository.save(msg);
+
+        // Broadcast message
+        broadcast(username + ": " + text);
+    }
+
+    @Override
+    public void afterConnectionClosed(WebSocketSession session, CloseStatus status) {
+        String username = getUsername(session);
+        activeSessions.remove(username);
+        broadcast("🔴 " + username + " left the chat.");
+    }
+
+    private void broadcast(String message) {
+        activeSessions.values().forEach(session -> {
             try {
-                session.sendMessage(new TextMessage(
-                        String.format("{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
-                                msg.getUsername(), msg.getContent(), msg.getTimestamp())
-                ));
-            } catch (Exception e) {
+                session.sendMessage(new TextMessage(message));
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         });
     }
 
-    @Override
-    protected void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
-        String payload = message.getPayload();
-
-        // Extract username and content
-        String username = extractField(payload, "username");
-        String content = extractField(payload, "content");
-
-        // Save and broadcast the user message
-        Message msg = new Message();
-        msg.setUsername(username);
-        msg.setContent(content);
-        msg.setTimestamp(Instant.now());
-        messageRepository.save(msg);
-
-        String broadcastMsg = String.format(
-                "{\"username\":\"%s\",\"content\":\"%s\",\"timestamp\":\"%s\"}",
-                msg.getUsername(), msg.getContent(), msg.getTimestamp()
-        );
-        broadcast(broadcastMsg);
-
-        // Check for bad words after broadcasting the user message
-        if (containsBadWords(content)) {
-            String warning = String.format(
-                    "{\"username\":\"SYSTEM\",\"content\":\"⚠️ %s used inappropriate language!\",\"timestamp\":\"%s\"}",
-                    username, Instant.now()
-            );
-            broadcast(warning);
-        }
+    private void sendPrivateMessage(WebSocketSession session, String message) throws IOException {
+        session.sendMessage(new TextMessage(message));
     }
 
-    private boolean containsBadWords(String text) {
-        if (text == null) return false;
-        String lowerText = text.toLowerCase();
-        for (String bad : BAD_WORDS) {
-            if (lowerText.contains(bad)) {
-                return true;
-            }
+    private boolean containsBannedWord(String text) {
+        String lower = text.toLowerCase();
+        for (String bad : bannedWords) {
+            if (lower.contains(bad)) return true;
         }
         return false;
     }
 
-    private void broadcast(String message) {
-        for (WebSocketSession s : sessions) {
-            try {
-                if (s.isOpen()) s.sendMessage(new TextMessage(message));
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+    private String getUsername(WebSocketSession session) {
+        // Expect username as a query parameter: ws://localhost:8080/chat?username=Kartheek
+        String query = Objects.requireNonNull(session.getUri()).getQuery();
+        if (query != null && query.startsWith("username=")) {
+            return query.substring("username=".length());
         }
-    }
-
-    private String extractField(String json, String field) {
-        try {
-            return json.split("\"" + field + "\":\"")[1].split("\"")[0];
-        } catch (Exception e) {
-            return "";
-        }
+        return "UnknownUser";
     }
 }

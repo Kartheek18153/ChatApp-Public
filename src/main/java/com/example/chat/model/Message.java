@@ -1,4 +1,5 @@
 
+
 package com.example.chat.model;
 
 import jakarta.persistence.*;
