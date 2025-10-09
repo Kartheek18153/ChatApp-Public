@@ -1,4 +1,3 @@
-
 # Use official OpenJDK 17 Alpine image
 FROM eclipse-temurin:17-jdk-alpine
 
