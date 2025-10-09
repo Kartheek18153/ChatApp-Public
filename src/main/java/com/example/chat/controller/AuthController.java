@@ -1,5 +1,3 @@
-
-
 package com.example.chat.controller;
 
 import com.example.chat.model.User;
@@ -37,4 +35,4 @@ public class AuthController {
                         : "Invalid password!")
                 .orElse("Invalid username!");
     }
-}
+} 
