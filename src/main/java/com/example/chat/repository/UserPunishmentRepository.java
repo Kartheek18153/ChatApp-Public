@@ -1,3 +1,4 @@
+
 package com.example.chat.repository;
 
 import com.example.chat.model.UserPunishment;
