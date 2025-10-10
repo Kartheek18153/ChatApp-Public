@@ -1,10 +1,11 @@
-
 package com.example.chat.controller;
 
 import com.example.chat.model.User;
 import com.example.chat.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/auth")
@@ -18,7 +19,8 @@ public class AuthController {
         if (user.getUsername() == null || user.getPassword() == null) {
             return "Username and password are required";
         }
-        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
+        Optional<User> existing = userRepository.findByUsername(user.getUsername());
+        if (existing.isPresent()) {
             return "Username already exists!";
         }
         userRepository.save(user);
@@ -30,10 +32,11 @@ public class AuthController {
         if (user.getUsername() == null || user.getPassword() == null) {
             return "Username and password are required";
         }
-        return userRepository.findByUsername(user.getUsername())
-                .map(u -> u.getPassword().equals(user.getPassword())
-                        ? "Login successful!"
-                        : "Invalid password!")
-                .orElse("Invalid username!");
+
+        Optional<User> existing = userRepository.findByUsername(user.getUsername());
+        if (existing.isEmpty()) return "Invalid username!";
+
+        User u = existing.get();
+        return u.getPassword().equals(user.getPassword()) ? "Login successful!" : "Invalid password!";
     }
-} 
+}

@@ -1,42 +1,36 @@
 package com.example.chat.controller;
 
-import org.springframework.web.bind.annotation.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import com.example.chat.model.User;
 import com.example.chat.repository.UserRepository;
-import java.time.LocalDateTime;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/profile")
-@CrossOrigin(origins = "*")
 public class ProfileController {
 
     @Autowired
-    private UserRepository userRepo;
+    private UserRepository userRepository;
 
-    // Get a user's profile
+    // Get user profile by username
     @GetMapping("/{username}")
     public User getProfile(@PathVariable String username) {
-        return userRepo.findByUsername(username);
+        Optional<User> user = userRepository.findByUsername(username);
+        return user.orElse(null); // return null if not found
     }
 
-    // Update user profile
-    @PostMapping("/update")
-    public String updateProfile(@RequestBody User updatedUser) {
-        User user = userRepo.findByUsername(updatedUser.getUsername());
-        if (user == null) return "User not found.";
+    // Update profile (only username for simplicity, password optional)
+    @PutMapping("/{username}")
+    public String updateProfile(@PathVariable String username, @RequestBody User updatedUser) {
+        Optional<User> userOpt = userRepository.findByUsername(username);
+        if (userOpt.isEmpty()) return "User not found!";
 
-        if (updatedUser.getDisplayName() != null)
-            user.setDisplayName(updatedUser.getDisplayName());
-        if (updatedUser.getBio() != null)
-            user.setBio(updatedUser.getBio());
-        if (updatedUser.getAvatarUrl() != null)
-            user.setAvatarUrl(updatedUser.getAvatarUrl());
-        if (updatedUser.getStatus() != null)
-            user.setStatus(updatedUser.getStatus());
-
-        user.setLastSeen(LocalDateTime.now());
-        userRepo.save(user);
-        return "Profile updated successfully.";
+        User user = userOpt.get();
+        if (updatedUser.getUsername() != null) user.setUsername(updatedUser.getUsername());
+        if (updatedUser.getPassword() != null) user.setPassword(updatedUser.getPassword());
+        userRepository.save(user);
+        return "Profile updated successfully!";
     }
 }
