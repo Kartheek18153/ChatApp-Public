@@ -1,32 +1,27 @@
-# Use official Maven image with Java 17 for build
-FROM maven:3.9.3-eclipse-temurin-17 AS build
+
+# Use official OpenJDK 17 Alpine image
+FROM eclipse-temurin:17-jdk-alpine
 
 # Set working directory
 WORKDIR /app
 
-# Copy only pom.xml first to leverage Docker cache for dependencies
+# Install Maven (needed to build the app)
+RUN apk add --no-cache maven bash
+
+# Copy pom.xml and download dependencies (caching)
 COPY pom.xml .
 
-# Download dependencies without building
+# Pre-download dependencies to speed up builds
 RUN mvn dependency:go-offline
 
-# Copy all source code
+# Copy the source code
 COPY src ./src
 
-# Build the application (skip tests to speed up)
+# Build the project without running tests
 RUN mvn clean package -DskipTests
 
-# Use a smaller Java runtime image for running the app
-FROM eclipse-temurin:17-jdk-jammy
-
-# Set working directory in runtime container
-WORKDIR /app
-
-# Copy the built jar from the build stage
-COPY --from=build /app/target/chatapp-0.0.1-SNAPSHOT.jar ./chatapp.jar
-
-# Expose Spring Boot default port
+# Expose port 8080
 EXPOSE 8080
 
-# Command to run the app
-ENTRYPOINT ["java","-jar","chatapp.jar"]
+# Run the Spring Boot application
+ENTRYPOINT ["java","-jar","target/chatapp-0.0.1-SNAPSHOT.jar"]
