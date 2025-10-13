@@ -40,6 +40,25 @@
     /* Scrollbar style */
     #messages::-webkit-scrollbar { width: 6px; }
     #messages::-webkit-scrollbar-thumb { background-color: rgba(0,0,0,0.2); border-radius: 3px; }
+
+    /* Profile Modal */
+    #profileModal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+    }
+    #profileModalContent {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      width: 300px;
+      text-align: center;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    }
   </style>
 </head>
 <body class="relative bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 min-h-screen font-sans overflow-hidden flex items-center justify-center">
@@ -101,7 +120,10 @@
       <div id="messagingPage" class="hidden flex flex-col w-full h-screen bg-white shadow-2xl rounded-xl p-4 sm:p-6">
         <div class="flex justify-between items-center mb-3">
           <h2 class="text-xl font-bold text-gray-700">Welcome, <span id="userDisplay"></span></h2>
-          <button onclick="logout()" class="text-sm bg-red-500 text-white px-3 py-1 rounded hover:opacity-90 transition">Logout</button>
+          <div class="flex gap-2">
+            <button onclick="showProfile()" class="text-sm bg-blue-500 text-white px-3 py-1 rounded hover:opacity-90 transition">Profile</button>
+            <button onclick="logout()" class="text-sm bg-red-500 text-white px-3 py-1 rounded hover:opacity-90 transition">Logout</button>
+          </div>
         </div>
 
         <div id="messages" class="border p-3 flex-1 overflow-y-auto bg-gradient-to-r from-blue-100 via-indigo-100 to-purple-100 rounded-lg mb-4 flex flex-col shadow-inner space-y-2"></div>
@@ -115,9 +137,20 @@
     </div>
   </div>
 
+  <!-- Profile Modal -->
+  <div id="profileModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+    <div id="profileModalContent">
+      <h2 class="text-xl font-bold mb-3">Profile</h2>
+      <p><strong>Username:</strong> <span id="profileUsername"></span></p>
+      <p><strong>Joined:</strong> <span id="profileJoined"></span></p>
+      <button onclick="closeProfile()" class="mt-4 bg-red-500 text-white px-4 py-2 rounded hover:opacity-90 transition">Close</button>
+    </div>
+  </div>
+
   <script>
     let ws;
     let myUsername = "";
+    let myJoined = "";
 
     // Background bubbles
     function createBubbles() {
@@ -170,6 +203,16 @@
       document.getElementById("userDisplay").innerText = "";
     }
 
+    // Profile Modal
+    function showProfile() {
+      document.getElementById("profileUsername").innerText = myUsername;
+      document.getElementById("profileJoined").innerText = myJoined || "N/A";
+      document.getElementById("profileModal").style.display = "flex";
+    }
+    function closeProfile() {
+      document.getElementById("profileModal").style.display = "none";
+    }
+
     // Auth
     async function register() {
       const username = document.getElementById("registerUsername").value.trim();
@@ -201,6 +244,7 @@
       document.getElementById("loginMsg").innerText = message;
       if (message.includes("successful")) {
         myUsername = username;
+        myJoined = new Date().toLocaleDateString(); // Example joined date, replace with server value
         document.getElementById("userDisplay").innerText = myUsername;
         showMessaging();
         startChat();
